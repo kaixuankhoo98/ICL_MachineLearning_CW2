@@ -94,7 +94,7 @@ class Regressor():
             
     def predict(self, x):
         """
-        Ouput the value corresponding to an input x.
+        Output the value corresponding to an input x.
 
         Arguments:
             x {pd.DataFrame} -- Raw input array of shape 

@@ -515,6 +515,9 @@ class Trainer(object):
                 (#_evaluation_data_points, n_features).
             - target_dataset {np.ndarray} -- Array of corresponding targets, of
                 shape (#_evaluation_data_points, #output_neurons).
+        
+        Returns:
+            a scalar value -- the loss
         """
         #######################################################################
         #                       ** START OF YOUR CODE **
@@ -618,7 +621,7 @@ def example_main():
         batch_size=8,
         nb_epoch=1000,
         learning_rate=0.01,
-        loss_fun="cross_entropy",
+        loss_fun="bce",
         shuffle_flag=True,
     )
 
