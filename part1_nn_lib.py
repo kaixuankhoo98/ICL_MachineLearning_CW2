@@ -230,11 +230,8 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self._W = xavier_init(self.n_in)
-        print(self._W)
-        self._b = np.zeros(self.n_out)
-        print(self._b)
-        # self._b = xavier_init(self.n_out) # how else do we match the dimensions?
+        self._W= xavier_init(self.n_in)
+        self._b = np.zeros(self.n_out) # to be updated later
 
         self._cache_current = (self._W, self._b)
         self._grad_W_current = 0
@@ -260,9 +257,12 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        z = np.dot(x, self._W) + self._b
+        # make bias the right shape according to x
+        # self._b = np.zeros(x.shape[0])
 
-        self._cache_current = (self._cache_current, x)
+        z = np.matmul(x, self._W) + self._b
+
+        self._cache_current = (x, self._cache_current)
 
         return z
 
@@ -287,8 +287,21 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        x_prev, (W, b) = self._cache_current
+        # print(x_prev)
+        m = x_prev.shape[1]
+        # print(W)
+        dW = 1./m*np.dot(grad_z, x_prev.T)
+        print(dW)
+        db = np.array(1./m*np.sum(grad_z, keepdims=True))
+        print(db)
+        dX_prev = np.dot(W.T, grad_z)
+        print(dX_prev)
 
+        # assert (dX_prev.shape == x_prev.shape)
+        # assert (dW.shape == W.shape)
+        # assert (db.shape == b.shape)
+        return dX_prev
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
