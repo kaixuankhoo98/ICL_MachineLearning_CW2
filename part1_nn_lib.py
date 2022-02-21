@@ -1,7 +1,9 @@
+from ctypes import sizeof
 import numpy as np
 import pickle
 from numpy.random import default_rng
 
+# https://datascience-enthusiast.com/DL/Building-your-Deep-Neural-Network-Step-by-Step.html
 
 def xavier_init(size, gain = 1.0):
     """
@@ -222,18 +224,19 @@ class LinearLayer(Layer):
             - n_out {int} -- Number (or dimension) of outputs.
         """
 
-        random_generator=default_rng()
-
         self.n_in = n_in
         self.n_out = n_out
 
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self._W = random_generator.standard_normal(self.n_in)
-        self._b = np.zeros(self.n_in)
+        self._W = xavier_init(self.n_in)
+        print(self._W)
+        self._b = np.zeros(self.n_out)
+        print(self._b)
+        # self._b = xavier_init(self.n_out) # how else do we match the dimensions?
 
-        self._cache_current = None
+        self._cache_current = (self._W, self._b)
         self._grad_W_current = 0
         self._grad_b_current = 0
 
@@ -257,9 +260,9 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        z = np.matmul(x,self._W) + self._b
+        z = np.dot(x, self._W) + self._b
 
-        # _cache_current?
+        self._cache_current = (self._cache_current, x)
 
         return z
 
