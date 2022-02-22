@@ -2,6 +2,7 @@ import torch
 import pickle
 import numpy as np
 import pandas as pd
+import read_data as rd
 
 class Regressor():
 
@@ -18,7 +19,6 @@ class Regressor():
             - nb_epoch {int} -- number of epoch to train the network.
 
         """
-        # First commit comment.
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
@@ -29,6 +29,11 @@ class Regressor():
         self.output_size = 1
         self.nb_epoch = nb_epoch 
         return
+        '''
+        TODO: think about what attributes are needed for the model.
+        TODO: _preprocessor method should be applied to arguments and dimensions of
+            neural network model should be set.
+        '''
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -57,7 +62,18 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        # Replace this code with your own
+        '''
+        TODO: handle x and y (pd.dataframes) as input
+        TODO: store parameters used for generated from preprocessing training data 
+              so that these same parameters can be used when preprocessing the testing
+              data
+        TODO: handle missing values in the data
+        TODO: encode textual values in the data using one-hot encoding.
+        see https://www.kaggle.com/dansbecker/using-categorical-data-with-one-hot-encoding if it works.
+        TODO: normalise numerical values to improve learning
+        '''
+
+
         # Return preprocessed x and y, return None for y if it was None
         return x, (y if isinstance(y, pd.DataFrame) else None)
 
@@ -199,7 +215,15 @@ def example_main():
     # But remember that LabTS tests take Pandas Dataframe as inputs
     data = pd.read_csv("housing.csv") 
 
-    # Spliting input and output
+    ################## CODE TO UNDERSTAND the dataset ###################
+
+    rd.first_and_last_five_rows(data)
+    rd.summary_statistics(data)
+    rd.dataset_datatypes(data)
+    rd.missing_values(data)
+    ################## PRE-PROVIDED CODE ###################
+
+    """ # Spliting input and output
     x_train = data.loc[:, data.columns != output_label]
     y_train = data.loc[:, [output_label]]
 
@@ -207,13 +231,16 @@ def example_main():
     # This example trains on the whole available dataset. 
     # You probably want to separate some held-out data 
     # to make sure the model isn't overfitting
+    '''TODO: separate out a held-out dataset from this training dataset, and pass in
+            the training dataset minus this held-out dataset
+    '''
     regressor = Regressor(x_train, nb_epoch = 10)
     regressor.fit(x_train, y_train)
     save_regressor(regressor)
 
     # Error
     error = regressor.score(x_train, y_train)
-    print("\nRegressor error: {}\n".format(error))
+    print("\nRegressor error: {}\n".format(error)) """
 
 
 if __name__ == "__main__":
