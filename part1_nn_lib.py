@@ -18,6 +18,7 @@ def xavier_init(size, gain = 1.0):
     """
     low = -gain * np.sqrt(6.0 / np.sum(size))
     high = gain * np.sqrt(6.0 / np.sum(size))
+
     return np.random.uniform(low=low, high=high, size=size)
 
 
@@ -107,6 +108,9 @@ class SigmoidLayer(Layer):
         """
         self._cache_current = None
 
+    def sigmoid(z):
+        1 / (1 + np.exp(-z) )
+
     def forward(self, x):
         """ 
         Performs forward pass through the Sigmoid layer.
@@ -123,7 +127,11 @@ class SigmoidLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+
+        Z = self.sigmoid(x)
+        self._cache_current = Z
+
+        return Z
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -146,7 +154,11 @@ class SigmoidLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+
+        # Pretty sure Z (as saved aboce in cache_current) is the correct value 
+        # to pass into the derivative of the activation function
+
+        return (grad_z)*(self.sigmoid(self.cache_current))*(1 - self.sigmoid(self.cache_current))
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -180,8 +192,10 @@ class ReluLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
-
+        # All values <=0 are set to 0
+        x[ x<=0 ] = 0      
+        self._cache_current = x  
+        return x
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -203,8 +217,13 @@ class ReluLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        
+        # We already have that all values <=0 are set to 0 from the forward pass
+        # Now we set all values <= 0 to 0
+        self._cache_current[self.cache_current > 0] = 1
 
+        # Returning the equivalent of dLoss/dZ on slide 33 of Neural Network II
+        return grad_z * self.cache_current
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -230,8 +249,13 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self._W= xavier_init(self.n_in)
-        self._b = np.zeros(self.n_out) # to be updated later
+        self._W= xavier_init((self.n_in,self.n_out)) # self.n_out !!!!
+        # changed n_out to n_in:
+        print("weight: ", self._W)
+        # Bias ia a column vector
+        self._b = np.zeros((1,self.n_out)) # self.n_out 
+        # self._b = np.array([1,2,3])
+        print("bias: ", self._b)
 
         self._cache_current = (self._W, self._b)
         self._grad_W_current = 0
@@ -279,29 +303,32 @@ class LinearLayer(Layer):
 
         Arguments:
             grad_z {np.ndarray} -- Gradient array of shape (batch_size, n_out).
+            <=> dLoss/dZ
 
-        Returns:
+        Returns: dLoss/dX
             {np.ndarray} -- Array containing gradient with repect to layer
                 input, of shape (batch_size, n_in).
         """
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        x_prev, (W, b) = self._cache_current
-        # print(x_prev)
-        m = x_prev.shape[1]
-        # print(W)
-        dW = 1./m*np.dot(grad_z, x_prev.T)
-        print(dW)
-        db = np.array(1./m*np.sum(grad_z, keepdims=True))
-        print(db)
-        dX_prev = np.dot(W.T, grad_z)
-        print(dX_prev)
 
-        # assert (dX_prev.shape == x_prev.shape)
-        # assert (dW.shape == W.shape)
-        # assert (db.shape == b.shape)
-        return dX_prev
+        # SLIDE 30 NEURAL_NETWORKS II: dLoss/db = (1^T)(dLoss/dZ)
+        one_vector_tanspose = ( np.zeros( (1, len(grad_z)) ) + 1 )
+        self._grad_b_current = np.matmul(one_vector_tanspose, grad_z)
+
+        # SLIDE 29 NEURAL_NETWORKS II: dLoss/dW = (X^T)(dLoss/dZ)
+        # Cache_current[0] is data x inputted into forward
+        x_tranpose = np.transpose(self._cache_current[0])
+        print( "x_transpose: ", x_tranpose )
+        print(" grad_z: ", grad_z)
+        # self._grad_W_current = np.matmul(x_tranpose, grad_z)
+
+        # SLIDE 28 NEURAL_NETWORKS II: dLoss/dX = (dLoss/DZ)(W^T) 
+        _W_transpose = np.transpose(self._W)
+        dL_dx = np.matmul(grad_z, _W_transpose )
+
+        return dL_dx
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -317,8 +344,8 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
-
+        self._W = self._W - learning_rate*self._grad_W_current
+        self._b = self._b - learning_rate*self._grad_b_current
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
