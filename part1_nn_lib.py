@@ -108,9 +108,6 @@ class SigmoidLayer(Layer):
         """
         self._cache_current = None
 
-    def sigmoid(z):
-        1 / (1 + np.exp(-z) )
-
     def forward(self, x):
         """ 
         Performs forward pass through the Sigmoid layer.
@@ -128,8 +125,11 @@ class SigmoidLayer(Layer):
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        Z = self.sigmoid(x)
+        Z = ( 1 / (1 + np.exp(-x)) )
         self._cache_current = Z
+
+        # print("Sigmoid layer input: ", x)
+        # print("sigmoid layer output: ", Z)
 
         return Z
 
@@ -158,7 +158,14 @@ class SigmoidLayer(Layer):
         # Pretty sure Z (as saved aboce in cache_current) is the correct value 
         # to pass into the derivative of the activation function
 
-        return (grad_z)*(self.sigmoid(self.cache_current))*(1 - self.sigmoid(self.cache_current))
+        # print ("Sigmoid Layer Backpass input: ", grad_z)
+
+        # print ("Sigmoid Layer Backpass Z: ", self._cache_current)
+        # print ( "g'(z): ", (self._cache_current)*(1 - self._cache_current))
+
+        # print("Sigmoid Layer Backpass output: ", (grad_z)*(self._cache_current)*(1 - self._cache_current))
+
+        return (grad_z)*(self._cache_current)*(1 - self._cache_current)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -193,8 +200,10 @@ class ReluLayer(Layer):
         #                       ** START OF YOUR CODE **
         #######################################################################
         # All values <=0 are set to 0
+        # print("ReLu layer input: ", x)
         x[ x<=0 ] = 0      
         self._cache_current = x  
+        # print("ReLu layer ouput: ", x)
         return x
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -220,10 +229,10 @@ class ReluLayer(Layer):
         
         # We already have that all values <=0 are set to 0 from the forward pass
         # Now we set all values <= 0 to 0
-        self._cache_current[self.cache_current > 0] = 1
+        self._cache_current[self._cache_current > 0] = 1
 
         # Returning the equivalent of dLoss/dZ on slide 33 of Neural Network II
-        return grad_z * self.cache_current
+        return grad_z * self._cache_current
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -249,13 +258,14 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+        # print("Number of input features: ", self.n_in)
         self._W= xavier_init((self.n_in,self.n_out)) # self.n_out !!!!
         # changed n_out to n_in:
-        print("weight: ", self._W)
+        # print("Linear layer weight: ", self._W)
         # Bias ia a column vector
         self._b = np.zeros((1,self.n_out)) # self.n_out 
         # self._b = np.array([1,2,3])
-        print("bias: ", self._b)
+        # print("Linear layer bias: ", self._b)
 
         self._cache_current = (self._W, self._b)
         self._grad_W_current = 0
@@ -284,9 +294,13 @@ class LinearLayer(Layer):
         # make bias the right shape according to x
         # self._b = np.zeros(x.shape[0])
 
+        # print("LinearLayer input: ", x)
+
         z = np.matmul(x, self._W) + self._b
 
         self._cache_current = (x, self._cache_current)
+
+        # print("LinearLayer output: ", z)
 
         return z
 
@@ -320,9 +334,9 @@ class LinearLayer(Layer):
         # SLIDE 29 NEURAL_NETWORKS II: dLoss/dW = (X^T)(dLoss/dZ)
         # Cache_current[0] is data x inputted into forward
         x_tranpose = np.transpose(self._cache_current[0])
-        print( "x_transpose: ", x_tranpose )
-        print(" grad_z: ", grad_z)
-        # self._grad_W_current = np.matmul(x_tranpose, grad_z)
+        # print( "x_transpose: ", x_tranpose )
+        # print(" grad_z: ", grad_z)
+        self._grad_W_current = np.matmul(x_tranpose, grad_z)
 
         # SLIDE 28 NEURAL_NETWORKS II: dLoss/dX = (dLoss/DZ)(W^T) 
         _W_transpose = np.transpose(self._W)
@@ -346,11 +360,10 @@ class LinearLayer(Layer):
         #######################################################################
         self._W = self._W - learning_rate*self._grad_W_current
         self._b = self._b - learning_rate*self._grad_b_current
-        #######################################################################
+         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
-
-
+# network.update_params(learning_rate)
 class MultiLayerNetwork(object):
     """
     MultiLayerNetwork: A network consisting of stacked linear layers and
@@ -387,8 +400,11 @@ class MultiLayerNetwork(object):
         for i in range(n_layers):
             # First linear layer
             layer_neurons = self.neurons[i]
+            
+            # If at first layer, input dimensions = input_dim
+            # Subsequent layer input dimensions = previous layer output dimensions
 
-            linlayer = LinearLayer(self.input_dim, layer_neurons)
+            linlayer = LinearLayer(input_dim, layer_neurons)
             self._layers.append(linlayer)
 
             # Activation layer
@@ -399,6 +415,8 @@ class MultiLayerNetwork(object):
             if ( activations[i] == 'relu' ):
                 relulayer = ReluLayer()
                 self._layers.append(relulayer)
+
+            input_dim = layer_neurons
             
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -445,7 +463,9 @@ class MultiLayerNetwork(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        reversed_layers = self._layers.reverse()
+        reversed_layers = reversed(self._layers)
+
+        # print("reversed_layers: ", reversed(self._layers))
 
         for layer in reversed_layers:
             grad_z = layer.backward(grad_z)
@@ -454,7 +474,7 @@ class MultiLayerNetwork(object):
         #                       ** END OF YOUR CODE **
         #######################################################################
 
-    def update_params(self, learning_rate = 0.001):
+    def update_params(self, learning_rate = 1):
         """
         Performs one step of gradient descent with given learning rate on the
         parameters of all layers using currently stored gradients.
