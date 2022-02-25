@@ -1,11 +1,33 @@
 import torch
+import torch.nn as nn
+import torch.nn.functional as F # includes key functions like loss function
+import torch.optim as optim # updates model parameters using computed gradient
 import pickle
 import numpy as np
 import pandas as pd
+import read_data as rd
 
-class Regressor():
+# Sources I've been working:
+""" 
+For pre-processing with SciPy
+https://www.freecodecamp.org/news/how-to-build-your-first-neural-network-to-predict-house-prices-with-keras-f8db83049159/
+For example implementation of a one hidden layer classifier
+https://www.youtube.com/watch?v=HXGmfzgZTr4
+Converting pandas dataframe to numpy ndarray to use with Pytorch
+https://stackoverflow.com/questions/50307707/convert-pandas-dataframe-to-pytorch-tensor
 
-    def __init__(self, x, nb_epoch = 1000):
+
+ """
+
+# Setting use of GPU
+use_cuda = torch.cuda.is_available()
+device = torch.device('cuda' if use_cuda else 'cpu')
+    
+print("Using GPU: {}".format(use_cuda))
+
+class Regressor(nn.Module):
+
+    def __init__(self, x, nb_epoch = 1000, n_hidden_layers = 1): 
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -18,22 +40,48 @@ class Regressor():
             - nb_epoch {int} -- number of epoch to train the network.
 
         """
-
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
 
         # Replace this code with your own
+        super().__init__() # call constructor of superclass
+        # pre-process the data
         X, _ = self._preprocessor(x, training = True)
         self.input_size = X.shape[1]
         self.output_size = 1
-        self.nb_epoch = nb_epoch 
+        self.nb_epoch = nb_epoch
+        self.linear1 = nn.Linear(
+            in_features=9, out_features=n_hidden_layers, bias=True
+        ) 
+        self.linear2 = nn.Linear(
+            in_features=n_hidden_layers, out_features=1, bias=True
+        )
+
         return
+        '''
+        TODO: _preprocessor method should be applied to arguments and dimensions of
+            neural network model should be set.
+        '''
 
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
 
+    def forward(self, inputs): # TODO: need to implement this cause we inherit from nn.Module
+        pass
+    """ the `forward` method to defines the computation that takes place
+     on the forward pass. A corresponding  `backward` method, which
+      computes gradients, is automatically defined!
+      e.g. implementation given in ICL's deep learning tutorial for one hidden layer classifier
+
+        h = self.linear1(inputs.view(-1, 784))
+        h = F.relu(h)
+        h = self.linear2(h)
+        return F.log_softmax(h, dim=1)
+      
+       """
+    
     def _preprocessor(self, x, y = None, training = False):
         """ 
         Preprocess input of the network.
@@ -57,7 +105,18 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        # Replace this code with your own
+        '''
+        TODO: handle x and y (pd.dataframes) as input
+        TODO: store parameters used for generated from preprocessing training data 
+              so that these same parameters can be used when preprocessing the testing
+              data
+        TODO: handle missing values in the data
+        TODO: encode textual values in the data using one-hot encoding.
+        see https://www.kaggle.com/dansbecker/using-categorical-data-with-one-hot-encoding if it works.
+        TODO: normalise numerical values to improve learning
+        '''
+
+
         # Return preprocessed x and y, return None for y if it was None
         return x, (y if isinstance(y, pd.DataFrame) else None)
 
@@ -199,6 +258,14 @@ def example_main():
     # But remember that LabTS tests take Pandas Dataframe as inputs
     data = pd.read_csv("housing.csv") 
 
+    ################## CODE TO UNDERSTAND the dataset ###################
+
+    rd.first_and_last_five_rows(data)
+    rd.summary_statistics(data)
+    rd.dataset_datatypes(data)
+    rd.missing_values(data)
+    ################## PRE-PROVIDED CODE ###################
+
     # Spliting input and output
     x_train = data.loc[:, data.columns != output_label]
     y_train = data.loc[:, [output_label]]
@@ -207,13 +274,16 @@ def example_main():
     # This example trains on the whole available dataset. 
     # You probably want to separate some held-out data 
     # to make sure the model isn't overfitting
-    regressor = Regressor(x_train, nb_epoch = 10)
+    '''TODO: separate out a held-out dataset from this training dataset, and pass in
+            the training dataset minus this held-out dataset
+    '''
+    """ regressor = Regressor(x_train, nb_epoch = 10)
     regressor.fit(x_train, y_train)
     save_regressor(regressor)
 
     # Error
     error = regressor.score(x_train, y_train)
-    print("\nRegressor error: {}\n".format(error))
+    print("\nRegressor error: {}\n".format(error)) """
 
 
 if __name__ == "__main__":
