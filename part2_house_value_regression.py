@@ -140,9 +140,6 @@ class Regressor(nn.Module):
         # normalising data
         self.min_max_scaler = preprocessing.MinMaxScaler()
         x_scale = self.min_max_scaler.fit_transform(x)
-        """ 
-            we have training (70%), val (15%), and testing (15%) subsets for both x and y.
-         """
         # Return preprocessed x and y, return None for y if it was None
         return x_scale, (y if isinstance(y, pd.DataFrame) else None)
         #######################################################################
@@ -169,9 +166,7 @@ class Regressor(nn.Module):
         #######################################################################
         
         X, Y = self._preprocessor(x, y = y, training = True) # Do not forget
-        # splitting out a held-out data set.
-        x_train, x_val_and_test, y_train, y_val_and_test = train_test_split(X, Y, test_size=0.3)
-        x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
+        
         
         return self
 
@@ -296,22 +291,21 @@ def example_main():
     ################## PRE-PROVIDED CODE ###################
 
     # Spliting input and output
-    x_train = data.loc[:, data.columns != output_label]
-    y_train = data.loc[:, [output_label]]
-    # Training
-    # This example trains on the whole available dataset. 
-    # You probably want to separate some held-out data 
-    # to make sure the model isn't overfitting
-    '''TODO: separate out a held-out dataset from this training dataset, and pass in
-            the training dataset minus this held-out dataset
-    '''
+    X = data.loc[:, data.columns != output_label]
+    Y = data.loc[:, [output_label]]
+    # TRAINING
+    # splitting out a held-out data set for validation and testing.
+    x_train, x_val_and_test, y_train, y_val_and_test = train_test_split(X, Y, test_size=0.3)
+    x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
+    #TODO: think about whether we need x_val, y_val. Think we need it for hyperparameter tuning.
+    #       we have training (70%), val (15%), and testing (15%) subsets for both x and y.
     regressor = Regressor(x_train, y_train, nb_epoch = 10)
 
     """ regressor.fit(x_train, y_train)
     save_regressor(regressor)
 
     # Error
-    error = regressor.score(x_train, y_train)
+    error = regressor.score(x_test, y_test)
     print("\nRegressor error: {}\n".format(error)) """
 
 
