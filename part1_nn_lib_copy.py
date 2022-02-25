@@ -124,9 +124,11 @@ class SigmoidLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+        
         Z = 1 / (1 + np.exp(-x))
         self._cache_current = Z
         return Z
+        
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -148,8 +150,9 @@ class SigmoidLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-
-        return (grad_z)*(self.sigmoid(self.cache_current))*(1 - self.sigmoid(self.cache_current))
+        
+        g_x = self._cache_current
+        return grad_z * (g_x * (1 - g_x))
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -183,10 +186,10 @@ class ReluLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        # All values <=0 are set to 0
-        x[ x<=0 ] = 0      
+        
         self._cache_current = x  
-        return x
+        return np.maximum(0, x)
+        
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -208,13 +211,11 @@ class ReluLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        
-        # We already have that all values <=0 are set to 0 from the forward pass
-        # Now we set all values <= 0 to 0
-        self._cache_current[self.cache_current > 0] = 1
 
+        x = self._cache_current
         # Returning the equivalent of dLoss/dZ on slide 33 of Neural Network II
-        return grad_z * self.cache_current
+        return grad_z * (x > 0)
+
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
