@@ -136,7 +136,7 @@ class Regressor(nn.Module):
         # encode textual values using one-hot encoding
         x = self.ohe_categorical(x)
         # handle missing values.
-        x = x.fillna(x.mean())
+        x = x.fillna(x.mean()) #TODO: be able to explain why we fill the missing values with the mean.
         # normalising data
         self.min_max_scaler = preprocessing.MinMaxScaler()
         x_scale = self.min_max_scaler.fit_transform(x)
