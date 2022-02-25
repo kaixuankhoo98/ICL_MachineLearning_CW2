@@ -377,7 +377,29 @@ class MultiLayerNetwork(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self._layers = None
+        self._layers = []
+
+        n_layers = len(self.neurons)
+
+        if ( len(self.activations) != n_layers ):
+            print("Error, length of neurons & activations not same")
+
+        for i in range(n_layers):
+            # First linear layer
+            layer_neurons = self.neurons[i]
+
+            linlayer = LinearLayer(self.input_dim, layer_neurons)
+            self._layers.append(linlayer)
+
+            # Activation layer
+            if ( activations[i] == 'sigmoid' ):
+                siglayer = SigmoidLayer()
+                self._layers.append(siglayer)
+
+            if ( activations[i] == 'relu' ):
+                relulayer = ReluLayer()
+                self._layers.append(relulayer)
+            
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -396,7 +418,10 @@ class MultiLayerNetwork(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        return np.zeros((1, self.neurons[-1])) # Replace with your own code
+        for layer in self._layers:
+            x = layer.forward(x)
+
+        return x
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -420,13 +445,16 @@ class MultiLayerNetwork(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        reversed_layers = self._layers.reverse()
 
+        for layer in reversed_layers:
+            grad_z = layer.backward(grad_z)
+        return grad_z
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
 
-    def update_params(self, learning_rate):
+    def update_params(self, learning_rate = 0.001):
         """
         Performs one step of gradient descent with given learning rate on the
         parameters of all layers using currently stored gradients.
@@ -437,8 +465,9 @@ class MultiLayerNetwork(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
-
+        for layer in self._layers:
+            if callable( layer.update_params( learning_rate ) ):
+                layer.update_params( learning_rate )
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
