@@ -6,6 +6,8 @@ import pickle
 import numpy as np
 import pandas as pd
 import read_data as rd
+from sklearn import preprocessing 
+from sklearn.model_selection import train_test_split # to ensure there's a held-out dataset...
 
 # Sources I've been working:
 """ 
@@ -27,7 +29,7 @@ print("Using GPU: {}".format(use_cuda))
 
 class Regressor(nn.Module):
 
-    def __init__(self, x, nb_epoch = 1000, n_hidden_layers = 1): 
+    def __init__(self, x, y = None, nb_epoch = 1000, n_hidden_layers = 1): 
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -47,8 +49,11 @@ class Regressor(nn.Module):
         # Replace this code with your own
         super().__init__() # call constructor of superclass
         # pre-process the data
-        X, _ = self._preprocessor(x, training = True)
-        self.input_size = X.shape[1]
+        x_train, _ = self._preprocessor(
+            x, (y if isinstance(y, pd.DataFrame) else None),
+            training = True
+        )
+        self.input_size = x_train.shape[1]
         self.output_size = 1
         self.nb_epoch = nb_epoch
         self.linear1 = nn.Linear(
@@ -81,6 +86,25 @@ class Regressor(nn.Module):
         return F.log_softmax(h, dim=1)
       
        """
+
+    def ohe_categorical(self, x):
+        self.label_binarizer = preprocessing.OneHotEncoder(handle_unknown='ignore')
+        #                   sets all unknown categories to 0 
+        #                   we make each parameter we use for preprocessing a field of the Regressor
+        #                   object so as to apply the same preprocessing parameters to the test dataset
+        #                   as well.
+        ocean_proximity = np.array(x['ocean_proximity'])
+        encoded_ocean_prox = self.label_binarizer.fit_transform(ocean_proximity.reshape(-1, 1)).toarray()
+
+        # drop categorical column and fill with dummy/encoded column
+        x = x.drop(['ocean_proximity'], axis = 1)
+
+        for i, dummy in enumerate(np.unique(ocean_proximity)):
+            x[dummy] = encoded_ocean_prox[:,i]
+        
+        return x
+
+
     
     def _preprocessor(self, x, y = None, training = False):
         """ 
@@ -106,20 +130,18 @@ class Regressor(nn.Module):
         #######################################################################
 
         '''
-        TODO: handle x and y (pd.dataframes) as input
-        TODO: store parameters used for generated from preprocessing training data 
-              so that these same parameters can be used when preprocessing the testing
-              data
-        TODO: handle missing values in the data
-        TODO: encode textual values in the data using one-hot encoding.
+       
         see https://www.kaggle.com/dansbecker/using-categorical-data-with-one-hot-encoding if it works.
-        TODO: normalise numerical values to improve learning
         '''
-
-
+        # encode textual values using one-hot encoding
+        x = self.ohe_categorical(x)
+        # handle missing values.
+        x = x.fillna(x.mean()) #TODO: be able to explain why we fill the missing values with the mean.
+        # normalising data
+        self.min_max_scaler = preprocessing.MinMaxScaler()
+        x_scale = self.min_max_scaler.fit_transform(x)
         # Return preprocessed x and y, return None for y if it was None
-        return x, (y if isinstance(y, pd.DataFrame) else None)
-
+        return x_scale, (y if isinstance(y, pd.DataFrame) else None)
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -142,8 +164,10 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-
+        
         X, Y = self._preprocessor(x, y = y, training = True) # Do not forget
+        
+        
         return self
 
         #######################################################################
@@ -260,29 +284,28 @@ def example_main():
 
     ################## CODE TO UNDERSTAND the dataset ###################
 
-    rd.first_and_last_five_rows(data)
-    rd.summary_statistics(data)
-    rd.dataset_datatypes(data)
-    rd.missing_values(data)
+    # rd.first_and_last_five_rows(data)
+    # rd.summary_statistics(data)
+    # rd.dataset_datatypes(data)
+    # rd.missing_values(data)
     ################## PRE-PROVIDED CODE ###################
 
     # Spliting input and output
-    x_train = data.loc[:, data.columns != output_label]
-    y_train = data.loc[:, [output_label]]
+    X = data.loc[:, data.columns != output_label]
+    Y = data.loc[:, [output_label]]
+    # TRAINING
+    # splitting out a held-out data set for validation and testing.
+    x_train, x_val_and_test, y_train, y_val_and_test = train_test_split(X, Y, test_size=0.3)
+    x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
+    #TODO: think about whether we need x_val, y_val. Think we need it for hyperparameter tuning.
+    #       we have training (70%), val (15%), and testing (15%) subsets for both x and y.
+    regressor = Regressor(x_train, y_train, nb_epoch = 10)
 
-    # Training
-    # This example trains on the whole available dataset. 
-    # You probably want to separate some held-out data 
-    # to make sure the model isn't overfitting
-    '''TODO: separate out a held-out dataset from this training dataset, and pass in
-            the training dataset minus this held-out dataset
-    '''
-    """ regressor = Regressor(x_train, nb_epoch = 10)
-    regressor.fit(x_train, y_train)
+    """ regressor.fit(x_train, y_train)
     save_regressor(regressor)
 
     # Error
-    error = regressor.score(x_train, y_train)
+    error = regressor.score(x_test, y_test)
     print("\nRegressor error: {}\n".format(error)) """
 
 
