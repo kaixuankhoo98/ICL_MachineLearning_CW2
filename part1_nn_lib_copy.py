@@ -2,6 +2,8 @@ from ctypes import sizeof
 import numpy as np
 import pickle
 from numpy.random import default_rng
+from sklearn.utils import shuffle
+import matplotlib.pyplot as plt
 
 # https://datascience-enthusiast.com/DL/Building-your-Deep-Neural-Network-Step-by-Step.html
 
@@ -510,7 +512,14 @@ class Trainer(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self._loss_layer = None
+        
+        self._decay_factor = 1.0
+        self._lambda = 0.01
+        if loss_fun == 'mse':
+            self._loss_layer = MSELossLayer()
+        elif loss_fun == 'cross_entropy' or loss_fun == 'bce':
+            self._loss_layer = CrossEntropyLossLayer()
+        
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -533,7 +542,14 @@ class Trainer(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        idxs = np.arange(len(input_dataset))
+        np.random.seed(69420)
+        np.random.shuffle(idxs)
+
+        shuffled_inputs = input_dataset[idxs]
+        shuffled_targets = target_dataset[idxs]
+
+        return shuffled_inputs, shuffled_targets
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -562,7 +578,39 @@ class Trainer(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        loss_list_curve = []
+        num_data_points, n_features = np.shape(input_dataset)
+        num_batches = max(num_data_points//self.batch_size, 1)
+
+        min_loss = 100
+        best_network = self.network
+
+        for epoch in range(self.nb_epoch):
+            if self.shuffle_flag == True:
+                input_dataset, target_dataset = self.shuffle(input_dataset, target_dataset)
+            
+            input_dataset_split = np.array_split(input_dataset, num_batches)
+            target_dataset_split = np.array_split(target_dataset, num_batches)
+
+            # implement learning rate decay
+
+            for i in range(num_batches):
+                y_pred = self.network.forward(input_dataset_split[i])
+                loss = self._loss_layer.forward(y_pred, target_dataset_split[i])
+
+                loss = loss + self._lambda
+
+                if i % 50 == 0:
+                    loss_list_curve.append(loss)
+                
+                grad_loss = self._loss_layer.backward()
+
+                self.network.backward(grad_loss)
+                self.network.update_params(self.learning_rate)
+            
+        plt.title("training loss")
+        plt.plot(range(len(loss_list_curve)),loss_list_curve)
+        plt.show()
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -585,7 +633,8 @@ class Trainer(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        y_pred = self.network.forward(input_dataset)
+        return self._loss_layer.forward(y_pred, target_dataset)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -610,7 +659,11 @@ class Preprocessor(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        self.mean_array = np.mean(data, axis=0)
+        self.std_array = np.std(data, axis=0)
+        
+        self.min_array = np.min(data, axis=0)
+        self.max_array = np.max(data, axis=0)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -629,7 +682,9 @@ class Preprocessor(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        
+        applied = (data - self.min_array) / (self.max_array - self.min_array)
+        return applied
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -648,7 +703,9 @@ class Preprocessor(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        
+        reverted = (data * (self.max_array - self.min_array)) + self.min_array
+        return reverted
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -687,6 +744,7 @@ def example_main():
         loss_fun="bce",
         shuffle_flag=True,
     )
+    print(x_train_pre)
 
     trainer.train(x_train_pre, y_train)
     print("Train loss = ", trainer.eval_loss(x_train_pre, y_train))
