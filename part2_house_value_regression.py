@@ -65,7 +65,6 @@ class Regressor(nn.Module):
         self.linear1 = nn.Linear(
             in_features=self.input_size, out_features=n_hidden, bias=True
         )
-        self.relu = F.Relu() # going to apply the Relu activation function to output of input layer 
         self.linear2 = nn.Linear(
             in_features=n_hidden, out_features=self.output_size, bias=True
         )
@@ -85,7 +84,7 @@ class Regressor(nn.Module):
         # https://stats.stackexchange.com/questions/153531/what-is-batch-size-in-neural-network
         feature_count = inputs.shape[0] * inputs.shape[1]
         out = self.linear1(inputs.view(-1, feature_count))
-        out = self.relu(out)
+        out = torch.relu(out)
         out = self.linear2(out)
         return out
         #TODO: not sure if this is right.
@@ -142,14 +141,14 @@ class Regressor(nn.Module):
        
         see https://www.kaggle.com/dansbecker/using-categorical-data-with-one-hot-encoding if it works.
         '''
-        # new preprocessing values needed if model is training
-        if training:
-            self.min_max_scaler = preprocessing.MinMaxScaler()
-            x = self.min_max_scaler.fit_transform(x)
         # encode textual values using one-hot encoding
         x = self.ohe_categorical(x)
         # handle missing values.
         x = x.fillna(x.mean()) #TODO: be able to explain why we fill the missing values with the mean.
+        # new preprocessing values needed if model is training
+        if training:
+            self.min_max_scaler = preprocessing.MinMaxScaler()
+            x = self.min_max_scaler.fit_transform(x)
         # convert data to tensors
         x_tensor = torch.from_numpy(np.array(x)).float()
         if y is not None:
