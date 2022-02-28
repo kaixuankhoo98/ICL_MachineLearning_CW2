@@ -150,8 +150,13 @@ class Regressor(nn.Module):
         x = self.ohe_categorical(x)
         # handle missing values.
         x = x.fillna(x.mean()) #TODO: be able to explain why we fill the missing values with the mean.
+        # convert data to tensors
+        x_tensor = torch.from_numpy(np.array(x)).float()
+        if y is not None:
+            y = y.fillna(y.mean())
+            y_tensor = torch.from_numpy(np.array(y)).float()
         # Return preprocessed x and y, return None for y if it was None
-        return x, (y if isinstance(y, pd.DataFrame) else None)
+        return x_tensor, (y_tensor if isinstance(y, pd.DataFrame) else None)
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -323,7 +328,7 @@ def example_main():
     #       we have training (70%), val (15%), and testing (15%) subsets for both x and y.
     regressor = Regressor(x_train, y_train, nb_epoch = 10).to(device)
     # Create instance of optimizer
-    optimizer = optim.SGD(regressor.parameters(), lr=0.01, momentum=0.5)
+    optimizer = optim.SGD(regressor.parameters(), lr=0.01, momentum=0.5) #TODO: not sure why we need a momentum
 
     """ regressor.fit(x_train, y_train, optimizer)
     save_regressor(regressor)
