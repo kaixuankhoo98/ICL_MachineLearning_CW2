@@ -20,7 +20,8 @@ https://stackoverflow.com/questions/50307707/convert-pandas-dataframe-to-pytorch
 
 
  """
-
+# FROM THE COLAB e.g. You should set a random seed to ensure that your results are reproducible.
+torch.manual_seed(0)
 # Setting use of GPU
 use_cuda = torch.cuda.is_available()
 device = torch.device('cuda' if use_cuda else 'cpu')
@@ -29,9 +30,8 @@ print("Using GPU: {}".format(use_cuda))
 
 class Regressor(nn.Module):
 
-    def __init__(self, x, y = None, nb_epoch = 1000, n_hidden_layers = 1): 
-        # You can add any input parameters you need
-        # Remember to set them with a default value for LabTS tests
+    def __init__(self, x, y = None, nb_epoch = 1000, n_hidden = 1): 
+        # n_hidden refers to the size of (i.e., number of neurons in) your hidden layers.
         """ 
         Initialise the model.
           
@@ -53,39 +53,48 @@ class Regressor(nn.Module):
             x, (y if isinstance(y, pd.DataFrame) else None),
             training = True
         )
+        #TODO: not entirely sure what the input_size should be...
+        # Should it be the number of columns in the training dataset? (That's what it is now and was given in the spec I think)
         self.input_size = x_train.shape[1]
-        self.output_size = 1
+        # or should it be like x_train.shape[0] * x_train.shape[1] i.e., the feature count.
+        # or should it be a tensor of like view(batch_size, -1)
+        # edited input_size according to https://towardsdatascience.com/pytorch-layer-dimensions-what-sizes-should-they-be-and-why-4265a41e01fd
+        self.output_size = 1 
+        # because we're predicting a single median value.
         self.nb_epoch = nb_epoch
         self.linear1 = nn.Linear(
-            in_features=9, out_features=n_hidden_layers, bias=True
-        ) 
-        self.linear2 = nn.Linear(
-            in_features=n_hidden_layers, out_features=1, bias=True
+            in_features=self.input_size, out_features=n_hidden, bias=True
         )
-
+        self.relu = F.Relu() # going to apply the Relu activation function to output of input layer 
+        self.linear2 = nn.Linear(
+            in_features=n_hidden, out_features=self.output_size, bias=True
+        )
+        # no activation for output layer because we're predicting an unbounded score.
+        self.criterion = nn.MSELoss()
+        #TODO: think about what loss function we're gonna use and why; just using MSELoss for now
+        # https://pytorch.org/docs/stable/nn.html#loss-functions
         return
-        '''
-        TODO: _preprocessor method should be applied to arguments and dimensions of
-            neural network model should be set.
-        '''
 
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
 
     def forward(self, inputs): # TODO: need to implement this cause we inherit from nn.Module
-        pass
+        #TODO: CHECK: i'm letting pytorch infer the batch size.
+        # https://machinelearningmastery.com/gentle-introduction-mini-batch-gradient-descent-configure-batch-size/
+        # https://stats.stackexchange.com/questions/153531/what-is-batch-size-in-neural-network
+        feature_count = inputs.shape[0] * inputs.shape[1]
+        out = self.linear1(inputs.view(-1, feature_count))
+        out = self.relu(out)
+        out = self.linear2(out)
+        return out
+        #TODO: not sure if this is right.
     """ the `forward` method to defines the computation that takes place
      on the forward pass. A corresponding  `backward` method, which
       computes gradients, is automatically defined!
       e.g. implementation given in ICL's deep learning tutorial for one hidden layer classifier
-
-        h = self.linear1(inputs.view(-1, 784))
-        h = F.relu(h)
-        h = self.linear2(h)
-        return F.log_softmax(h, dim=1)
-      
        """
+
 
     def ohe_categorical(self, x):
         self.label_binarizer = preprocessing.OneHotEncoder(handle_unknown='ignore')
@@ -133,6 +142,7 @@ class Regressor(nn.Module):
        
         see https://www.kaggle.com/dansbecker/using-categorical-data-with-one-hot-encoding if it works.
         '''
+        #TODO: what is the meaning of the 'training' flag?
         # encode textual values using one-hot encoding
         x = self.ohe_categorical(x)
         # handle missing values.
@@ -147,7 +157,7 @@ class Regressor(nn.Module):
         #######################################################################
 
         
-    def fit(self, x, y):
+    def fit(self, x, y, optimizer = None):
         """
         Regressor training function
 
@@ -155,7 +165,7 @@ class Regressor(nn.Module):
             - x {pd.DataFrame} -- Raw input array of shape 
                 (batch_size, input_size).
             - y {pd.DataFrame} -- Raw output array of shape (batch_size, 1).
-
+            - optimizer -- optimizer that updates moral parameters using computed gradient
         Returns:
             self {Regressor} -- Trained model.
 
@@ -166,7 +176,17 @@ class Regressor(nn.Module):
         #######################################################################
         
         X, Y = self._preprocessor(x, y = y, training = True) # Do not forget
-        
+        for epoch in range(self.nb_epoch):
+            pass
+            #TODO: fill in this pseudocode
+            # prepare data for forward pass
+            # calculate loss
+            # backward propogation
+            # and optimize
+            """ e.g. optimizer.zero_grad()
+                     loss.backward()
+                     optimizer.step() """
+
         
         return self
 
@@ -218,6 +238,7 @@ class Regressor(nn.Module):
         #######################################################################
 
         X, Y = self._preprocessor(x, y = y, training = False) # Do not forget
+
         return 0 # Replace this code with your own
 
         #######################################################################
@@ -284,10 +305,11 @@ def example_main():
 
     ################## CODE TO UNDERSTAND the dataset ###################
 
-    # rd.first_and_last_five_rows(data)
-    # rd.summary_statistics(data)
-    # rd.dataset_datatypes(data)
-    # rd.missing_values(data)
+    """ rd.first_and_last_five_rows(data)
+    rd.summary_statistics(data)
+    rd.dataset_datatypes(data)
+    rd.missing_values(data)
+    print(data.shape) """
     ################## PRE-PROVIDED CODE ###################
 
     # Spliting input and output
@@ -299,9 +321,11 @@ def example_main():
     x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
     #TODO: think about whether we need x_val, y_val. Think we need it for hyperparameter tuning.
     #       we have training (70%), val (15%), and testing (15%) subsets for both x and y.
-    regressor = Regressor(x_train, y_train, nb_epoch = 10)
+    regressor = Regressor(x_train, y_train, nb_epoch = 10).to(device)
+    # Create instance of optimizer
+    optimizer = optim.SGD(regressor.parameters(), lr=0.01, momentum=0.5)
 
-    """ regressor.fit(x_train, y_train)
+    """ regressor.fit(x_train, y_train, optimizer)
     save_regressor(regressor)
 
     # Error
