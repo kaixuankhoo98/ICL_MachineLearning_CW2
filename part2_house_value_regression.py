@@ -142,14 +142,14 @@ class Regressor(nn.Module):
        
         see https://www.kaggle.com/dansbecker/using-categorical-data-with-one-hot-encoding if it works.
         '''
-        #TODO: what is the meaning of the 'training' flag?
+        # new preprocessing values needed if model is training
+        if training:
+            self.min_max_scaler = preprocessing.MinMaxScaler()
+            x_scale = self.min_max_scaler.fit_transform(x)
         # encode textual values using one-hot encoding
-        x = self.ohe_categorical(x)
+        x_scale = self.ohe_categorical(x_scale)
         # handle missing values.
-        x = x.fillna(x.mean()) #TODO: be able to explain why we fill the missing values with the mean.
-        # normalising data
-        self.min_max_scaler = preprocessing.MinMaxScaler()
-        x_scale = self.min_max_scaler.fit_transform(x)
+        x_scale = x_scale.fillna(x_scale.mean()) #TODO: be able to explain why we fill the missing values with the mean.
         # Return preprocessed x and y, return None for y if it was None
         return x_scale, (y if isinstance(y, pd.DataFrame) else None)
         #######################################################################
