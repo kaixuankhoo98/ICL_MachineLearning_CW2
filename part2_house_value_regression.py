@@ -145,13 +145,13 @@ class Regressor(nn.Module):
         # new preprocessing values needed if model is training
         if training:
             self.min_max_scaler = preprocessing.MinMaxScaler()
-            x_scale = self.min_max_scaler.fit_transform(x)
+            x = self.min_max_scaler.fit_transform(x)
         # encode textual values using one-hot encoding
-        x_scale = self.ohe_categorical(x_scale)
+        x = self.ohe_categorical(x)
         # handle missing values.
-        x_scale = x_scale.fillna(x_scale.mean()) #TODO: be able to explain why we fill the missing values with the mean.
+        x = x.fillna(x.mean()) #TODO: be able to explain why we fill the missing values with the mean.
         # Return preprocessed x and y, return None for y if it was None
-        return x_scale, (y if isinstance(y, pd.DataFrame) else None)
+        return x, (y if isinstance(y, pd.DataFrame) else None)
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
