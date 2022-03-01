@@ -623,7 +623,7 @@ class Trainer(object):
             if epoch % 50 == 49: 
                 print(f"----- Epoch {epoch+1} completed: Loss = {loss} -----") 
             
-        plt.title("training loss")
+        plt.title("Training Loss")
         plt.plot(range(len(loss_list_curve)),loss_list_curve)
         plt.show()
 
