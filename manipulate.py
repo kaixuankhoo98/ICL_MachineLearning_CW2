@@ -1,4 +1,4 @@
-import part1_nn_lib as lib
+import part1_nn_lib_gus as lib
 import numpy as np
 # from numpy import random_seed
 
