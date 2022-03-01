@@ -1,4 +1,4 @@
-import part1_nn_lib_copy as lib
+import part1_nn_lib as lib
 import numpy as np
 
 x = np.array([[1,3,2,4], [1,2,4,2], [4,2,3,3]])
