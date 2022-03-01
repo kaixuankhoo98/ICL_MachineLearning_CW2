@@ -193,7 +193,7 @@ class Regressor(nn.Module):
                 output = self(input)
 
                 # calculate loss
-                loss = self.criterion(output, labels)
+                loss = torch.sqrt(self.criterion(output, labels))
                 loss.backward()
                 
                 # and optimize
