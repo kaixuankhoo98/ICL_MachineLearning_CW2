@@ -153,6 +153,7 @@ class SigmoidLayer(Layer):
         #                       ** START OF YOUR CODE **
         #######################################################################
         
+        # derivative of activation function as described in lecture notes
         g_z = self._cache_current
         return grad_z * (g_z * (1 - g_z))
 
@@ -188,9 +189,12 @@ class ReluLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        
+
+        # All values <=0 are set to 0
+        x[x<=0] = 0      
         self._cache_current = x  
-        return np.maximum(0, x)
+
+        return x
         
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -214,9 +218,12 @@ class ReluLayer(Layer):
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        x = self._cache_current
+        # We already have that all values <=0 are set to 0 from the forward pass
+        # Now we set all values <= 0 to 0
+        self._cache_current[self._cache_current > 0] = 1
+
         # Returning the equivalent of dLoss/dZ on slide 33 of Neural Network II
-        return grad_z * (x > 0)
+        return grad_z * self._cache_current
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -243,14 +250,13 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self._W= xavier_init((n_in, n_out), 1.0) 
-        # Bias ia a column vector
+        self._W = xavier_init((n_in, n_out)) 
+        # Bias is a column vector
         self._b = np.zeros(n_out) # self.n_out 
 
         self._cache_current = None
         self._grad_W_current = None
         self._grad_b_current = None
-        # self.grad_clipping = None #???
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -272,11 +278,13 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        # store x, W and b in cache for backwards pass
-        self._cache_current = (x, np.array(self._W), np.array(self._b))
         
         z = np.matmul(x, self._W) + self._b
         # can use np.dot as well
+
+        # store x, W and b in cache for backwards pass
+        self._cache_current = (x, np.array(self._W), np.array(self._b))
+
         return z
 
         #######################################################################
@@ -328,9 +336,10 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self.grad_clipping = 0.8
-        grad_W = np.minimum(np.maximum(-1 * self.grad_clipping, self._grad_W_current), self.grad_clipping)
-        self._W = learning_rate * grad_W
+        
+        self._W = self._W - learning_rate*self._grad_W_current
+        self._b = self._b - learning_rate*self._grad_b_current
+        
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
