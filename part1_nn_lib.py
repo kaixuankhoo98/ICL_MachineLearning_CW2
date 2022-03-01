@@ -337,6 +337,8 @@ class LinearLayer(Layer):
         #                       ** START OF YOUR CODE **
         #######################################################################
         
+        # TODO: add gradient clipping
+
         self._W = self._W - learning_rate*self._grad_W_current
         self._b = self._b - learning_rate*self._grad_b_current
         
@@ -591,8 +593,8 @@ class Trainer(object):
         num_data_points, n_features = np.shape(input_dataset)
         num_batches = max(num_data_points//self.batch_size, 1)
 
-        min_loss = 100
-        best_network = self.network
+        # min_loss = 100
+        # best_network = self.network
 
         for epoch in range(self.nb_epoch):
             if self.shuffle_flag == True:
@@ -616,6 +618,10 @@ class Trainer(object):
 
                 self.network.backward(grad_loss)
                 self.network.update_params(self.learning_rate)
+            
+            # print every 50 epochs
+            if epoch % 50 == 49: 
+                print(f"----- Epoch {epoch+1} completed: Loss = {loss} -----") 
             
         plt.title("training loss")
         plt.plot(range(len(loss_list_curve)),loss_list_curve)
