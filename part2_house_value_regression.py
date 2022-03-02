@@ -8,6 +8,7 @@ import pandas as pd
 import read_data as rd
 from sklearn import preprocessing 
 from sklearn.model_selection import train_test_split # to ensure there's a held-out dataset...
+from sklearn.metrics import mean_squared_error as mse
 
 # Sources I've been working:
 """ 
@@ -230,7 +231,14 @@ class Regressor(nn.Module):
         #######################################################################
 
         X, _ = self._preprocessor(x, training = False) # Do not forget
-        pass
+        y_hat = []
+
+        with torch.no_grad():
+                for i, value in enumerate(X):
+                        out = self.linear1(value)
+                        y_hat = np.append(y_hat, out)
+
+        return y_hat
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -255,6 +263,10 @@ class Regressor(nn.Module):
         #######################################################################
 
         X, Y = self._preprocessor(x, y = y, training = False) # Do not forget
+
+        y_hat = self.predict(x)
+
+        return -mse(Y, y_hat)
 
         return 0 # Replace this code with your own
 
@@ -338,12 +350,16 @@ def example_main():
     x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
     #TODO: think about whether we need x_val, y_val. Think we need it for hyperparameter tuning.
     #       we have training (70%), val (15%), and testing (15%) subsets for both x and y.
-    regressor = Regressor(x_train, y_train, nb_epoch = 1000).to(device)
+    regressor = Regressor(x_train, y_train, nb_epoch = 100).to(device)
     # Create instance of optimizer
     optimizer = optim.SGD(regressor.parameters(), lr=0.01, momentum=0.5) #TODO: not sure why we need a momentum
 
     regressor.fit(x_train, y_train, optimizer)
     save_regressor(regressor)
+
+    print(regressor.predict(x_test))
+
+    print(regressor.score(x_test, y_test))
 
      
     """ Error
