@@ -120,33 +120,32 @@ class Regressor(nn.Module):
         #                       ** END OF YOUR CODE **
         #######################################################################
 
-    def forward(self, inputs): # TODO: need to implement this cause we inherit from nn.Module
-        #TODO: CHECK: i'm letting pytorch infer the batch size.
+    def forward(self, inputs): 
+
+        """ 
+        The `forward` method to defines the computation that takes place
+        on the forward pass. A corresponding  `backward` method, which
+        computes gradients, is automatically defined!
+        e.g. implementation given in ICL's deep learning tutorial for one hidden layer classifier
+        """
         # https://machinelearningmastery.com/gentle-introduction-mini-batch-gradient-descent-configure-batch-size/
         # https://stats.stackexchange.com/questions/153531/what-is-batch-size-in-neural-network
-        # feature_count = inputs.shape[0] * inputs.shape[1]
-        # out = self.linear1(inputs) #.view(-1, feature_count)
-        # out = torch.relu(out)
-        # out = self.linear2(out)
-        #print(18)
+        
         out = self.layers[0](inputs)
-        ##print(19)
         for layer in self.layers[1:]:
             out = layer(out)
-        #print(20)
         return out
-    """ the `forward` method to defines the computation that takes place
-     on the forward pass. A corresponding  `backward` method, which
-      computes gradients, is automatically defined!
-      e.g. implementation given in ICL's deep learning tutorial for one hidden layer classifier
-    """
+    
 
     def ohe_categorical(self, x):
+
         self.label_binarizer = preprocessing.OneHotEncoder(handle_unknown='ignore')
-        #                   sets all unknown categories to 0 
-        #                   we make each parameter we use for preprocessing a field of the Regressor
-        #                   object so as to apply the same preprocessing parameters to the test dataset
-        #                   as well.
+
+        """
+        Sets all unknown categories to 0 we make each parameter we use for preprocessing a field of the Regressor
+        object so as to apply the same preprocessing parameters to the test dataset as well.
+        """
+       
         ocean_proximity = np.array(x['ocean_proximity'])
         encoded_ocean_prox = self.label_binarizer.fit_transform(ocean_proximity.reshape(-1, 1)).toarray()
 
@@ -156,14 +155,16 @@ class Regressor(nn.Module):
         for i, dummy in enumerate(np.unique(ocean_proximity)):
             x[dummy] = encoded_ocean_prox[:,i]
 
-        """Our test data did not have "ISLAND" in it, so the one hot encoding returns 12 features rather than 13 as in the test data
-        This causes a problem for the scaler transformation later, so we are making sure Island is included """
+        """
+        Our test data did not have "ISLAND" in it, so the one hot encoding returns 12 features rather than 13 as in the test data
+        This causes a problem for the scaler transformation later, so we are making sure Island is included 
+        """
+        
         ocean_prox_variables = ['<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN']
 
         for prox in ocean_prox_variables:
             if prox not in x:
                 x[prox] = np.zeros(len(x))
-        """"""
 
         return x
 
@@ -191,78 +192,39 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        '''
-       
-        see https://www.kaggle.com/dansbecker/using-categorical-data-with-one-hot-encoding if it works.
-        '''
-        #print(11)
-        # print("trqw x shape:", x.shape)
-        # print("trqw x:", x)
-        # print(x.loc[:, ['ISLAND']])
+
         # encode textual values using one-hot encoding
         x = self.ohe_categorical(x)
-        # print("trqw x shape:", x.shape)
+
         # handle missing values.
-        #print(12)
-        x = x.fillna(x.mean()) #TODO: be able to explain why we fill the missing values with the mean.
-        # print("trqw x shape:", x.shape)
-        #print(13)
+        x = x.fillna(x.mean()) 
 
         # new preprocessing values needed if model is training
         training_columns_to_normalize = ['longitude', 'latitude', 'housing_median_age', 'total_rooms', 'total_bedrooms', 
                                         'population', 'households', 'median_income']
 
-        # print("X: ", x)
-        # print("y: ", y)
-        
-        """
-        NEED TO SORT: not liking .loc, causes matrix multiplication error. Why? 
-        """
-        #print(14)
         # Normalise X
         if training:
             self.x_scaler = self.x_scaler.fit(x.loc[:, training_columns_to_normalize])
             x = self.x_scaler.transform(x.loc[:, training_columns_to_normalize])
-            # self.x_scaler = self.x_scaler.fit(x)
-            # x = self.x_scaler.transform(x)
 
         else:
             x = self.x_scaler.transform(x.loc[:, training_columns_to_normalize])
-            # x = self.x_scaler.transform(x)
 
-        # convert X to tensor TO DO: COME BACK TO
-        #print(15)
         x_tensor = torch.from_numpy(np.array(x)).float()
-        # print("x_tensor: ", x_tensor)
 
-        # Normalise y if gievn
-        #print(16)
+        # Normalise y if given
         if y is not None:
-          #  print(17)
             testing_column_to_normalize = ['median_house_value']
             if training:
                 self.y_scalar = self.y_scaler.fit(y.loc[:, testing_column_to_normalize])
-                y = self.y_scaler.transform(y.loc[:, testing_column_to_normalize])
-         #       print(18)
-                # self.y_scalar = self.y_scaler.fit(y)
-                # y = self.y_scaler.transform(y)
-                
+                y = self.y_scaler.transform(y.loc[:, testing_column_to_normalize])   
             else:
                 y = self.y_scaler.transform(y.loc[:, testing_column_to_normalize])
-                # y = self.y_scaler.transform(y)
-                #print(19)
 
-            # print("X post normalisation: ", x)
-            # print("y post normalisation: ", y)
-            # print("length of X: ", len(x), " & length of y: ", len(y))
-
-        
             y_tensor = torch.from_numpy(np.array(y)).float()
-            # print("y_tensor: ", y_tensor)
-         #   print(17)
-         #print(21)
             return(x_tensor, y_tensor)
-        #print(20)
+
         # Return preprocessed x and y
         return x_tensor
         #######################################################################
@@ -288,33 +250,29 @@ class Regressor(nn.Module):
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        # print("In fit, before pre-processing, y: ", y)
-        (X, Y) = self._preprocessor(x, y = y, training = True) # Do not forget
-        # print("In fit, after pre-processing, X: ", X, " & Y: ", Y)
+        (X, Y) = self._preprocessor(x, y = y, training = True) 
+
         # prepare data for forward pass
-        # use Pytorch utilities for data preparation https://discuss.pytorch.org/t/what-do-tensordataset-and-dataloader-do/107017
+        # use Pytorch utilities for data preparation
 
         dataset = torch.utils.data.TensorDataset(X, Y)
 
         average_loss_per_epoch = []
 
-        # set model to training mode: https://stackoverflow.com/questions/60018578/what-does-model-eval-do-in-pytorch
+        # set model to training mode
 
         self.train()
         for epoch in range(self.nb_epoch):
             train_loader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
             total_loss_per_epoch = 0.0
             for i, (input, labels) in enumerate(train_loader, 0):
-                # set our input and label tensors to use our device
-                #input#.to(device)
-                #labels#.to(device)
                 # forward pass
                 if optimizer is not None:
                     optimizer.zero_grad()
                 output = self(input)
 
                 # calculate loss
-                loss = torch.sqrt(self.criterion(output, labels))
+                loss = (self.criterion(output, labels))
                 loss.backward()
                 
                 # and optimize
@@ -326,8 +284,8 @@ class Regressor(nn.Module):
             average_loss_per_epoch.append(average_training_loss)
             if epoch % 10 == 0:
                 print("Epoch ", epoch, ", Average Training Loss ", average_training_loss)
-        # TODO why is it going through the epochs so slowly?
 
+        # code for plotting
         # plt.title("Training Loss")
         # plt.plot(range(len(average_loss_per_epoch)),average_loss_per_epoch)
         # plt.xlabel("Epoch number")
@@ -356,19 +314,14 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        # BEING PASSED A TENSOR AS IT IS
+
         X, _ = self._preprocessor(x, training = False) # Do not forget
-        # x = torch.tensor(x).float()
-        # turn on evaluation mode
-        # self.eval()
-        # predictions = []
+
         with torch.no_grad(): # for less memory consumption
-            # for i, value in enumerate(x):
-            #     outputs = self(value)
-            #     predictions = np.append(predictions, outputs)
             y_pred = self(x)            
 
         predictions = self.y_scaler.inverse_transform(y_pred)
+
         return predictions
 
         #######################################################################
@@ -394,17 +347,10 @@ class Regressor(nn.Module):
         #######################################################################
         # Underscore as want to ignore the parameter
         # Want to pre-process ground truths (y) in the same way pre-process x, but use the scalers that are stored (why trainging false) & just transform x & y
-        # print("ahjsd score x.shape: ", x.shape, " & y.shape: ", y.shape)
         x, _ = self._preprocessor(x, y = y, training = False) # Do not forget
-        # print("jhlk")
-        # get prediction
-        # y_pred = self.predict(x)
-        # print(y_pred)
+
 
         with torch.no_grad(): # for less memory consumption
-            # for i, value in enumerate(x):
-            #     outputs = self(value)
-            #     predictions = np.append(predictions, outputs)
             y_pred = self(x)            
 
         predictions = self.y_scaler.inverse_transform(y_pred)
@@ -414,7 +360,7 @@ class Regressor(nn.Module):
         # square root of mse
         rmse = math.sqrt(mse)
         print(rmse)
-        return rmse # Replace this code with your own
+        return rmse 
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -443,7 +389,7 @@ def load_regressor():
 
 
 def RegressorHyperParameterSearch(x,y): 
-    # Ensure to add whatever inputs you deem necessary to this function
+
     """
     Performs a hyper-parameter for fine-tuning the regressor implemented 
     in the Regressor class.
@@ -464,8 +410,6 @@ def RegressorHyperParameterSearch(x,y):
     neurons = [[120, 60],[5,5],[100, 50],[100]]
     activations = [['relu', 'sigmoid'], ['relu', 'sigmoid'], ['relu', 'sigmoid'],['relu']]
 
-    hyperparameters = list(product(learning_rates, batch_size))
-
     min_error = 80000
     best_lr = 0
     best_bs = 0
@@ -473,58 +417,64 @@ def RegressorHyperParameterSearch(x,y):
     x_train, x_val_and_test, y_train, y_val_and_test = train_test_split(x, y, test_size=0.3)
     x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
 
-    # for lr in learning_rates:
-    #     print("Testing learning rates:")
-    #     print(lr)
-    #     regressor = Regressor(x_train, y_train, nb_epoch = 100)#.to(device)
-    #     # Create instance of optimizer
-    #     optimizer = optim.SGD(regressor.parameters(), lr=lr, momentum=0.5) #TODO: not sure why we need a momentum
 
-    #     regressor.fit(x_train, y_train, optimizer)
-    #     save_regressor(regressor)
+    #Find best learning rate
+    for lr in learning_rates:
+        print("Testing learning rates:")
+        print(lr)
+        regressor = Regressor(x_train, y_train, nb_epoch = 100)#.to(device)
+        # Create instance of optimizer
+        optimizer = optim.SGD(regressor.parameters(), lr=lr, momentum=0.5) #TODO: not sure why we need a momentum
 
-        
-    #     # Error
-    #     error = regressor.score(x_test, y_test)
-
-    #     if error < min_error:
-    #         min_error = error
-    #         best_lr = lr
-    # print("Best learning rate: ", best_lr)
-    # print("Lowest error for lr: ", min_error)
-
-    # min_error = 80000
-
-    # for bs in batch_size:
-    #     print("Testing batch size:")
-    #     print(bs)
-    #     regressor = Regressor(x_train, y_train, nb_epoch = 100, batch_size = bs)#.to(device)
-    #     # Create instance of optimizer
-    #     optimizer = optim.SGD(regressor.parameters(), lr=best_lr, momentum=0.5) #TODO: not sure why we need a momentum
-
-    #     regressor.fit(x_train, y_train, optimizer)
-    #     save_regressor(regressor)
+        regressor.fit(x_train, y_train, optimizer)
+        save_regressor(regressor)
 
         
-    #     # Error
-    #     error = regressor.score(x_test, y_test)
+        # Error
+        error = regressor.score(x_test, y_test)
 
-    #     if error < min_error:
-    #         min_error = error
-    #         best_bs = bs
+        if error < min_error:
+            min_error = error
+            best_lr = lr
+    print("Best learning rate: ", best_lr)
+    print("Lowest error for lr: ", min_error)
 
-    # print("Best batch size: ", best_bs)
-    # print("with lowest error of: ", min_error)
+    min_error = 80000
+
+
+    #Use best learning rate and find best batch size
+    for bs in batch_size:
+        print("Testing batch size:")
+        print(bs)
+        regressor = Regressor(x_train, y_train, nb_epoch = 100, batch_size = bs)#.to(device)
+        # Create instance of optimizer
+        optimizer = optim.SGD(regressor.parameters(), lr=best_lr, momentum=0.5) #TODO: not sure why we need a momentum
+
+        regressor.fit(x_train, y_train, optimizer)
+        save_regressor(regressor)
+
+        
+        # Error
+        error = regressor.score(x_test, y_test)
+
+        if error < min_error:
+            min_error = error
+            best_bs = bs
+
+    print("Best batch size: ", best_bs)
+    print("with lowest error of: ", min_error)
 
 
     min_error = 80000
 
+
+    #Use best learning rate and batch size and find best neuron config
     for i,j in zip(neurons, activations):
         print("Testing neurons size:")
         print(i)
         regressor = Regressor(x_train, y_train, nb_epoch = 100, batch_size = 64, neurons = i, activations =j)#.to(device)
         # Create instance of optimizer
-        optimizer = optim.SGD(regressor.parameters(), lr=.1, momentum=0.5) #TODO: not sure why we need a momentum
+        optimizer = optim.SGD(regressor.parameters(), lr=.1, momentum=0.5) 
 
         regressor.fit(x_train, y_train, optimizer)
         save_regressor(regressor)
