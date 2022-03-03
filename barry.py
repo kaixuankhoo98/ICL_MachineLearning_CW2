@@ -322,7 +322,7 @@ class Regressor(nn.Module):
         #                       ** START OF YOUR CODE **
         #######################################################################
         # BEING PASSED A TENSOR AS IT IS
-        # X, _ = self._preprocessor(x, training = False) # Do not forget
+        X, _ = self._preprocessor(x, training = False) # Do not forget
         # x = torch.tensor(x).float()
         # turn on evaluation mode
         # self.eval()
@@ -363,11 +363,19 @@ class Regressor(nn.Module):
         x, _ = self._preprocessor(x, y = y, training = False) # Do not forget
         # print("jhlk")
         # get prediction
-        y_pred = self.predict(x)
-        print(y_pred)
+        # y_pred = self.predict(x)
+        # print(y_pred)
+
+        with torch.no_grad(): # for less memory consumption
+            # for i, value in enumerate(x):
+            #     outputs = self(value)
+            #     predictions = np.append(predictions, outputs)
+            y_pred = self(x)            
+
+        predictions = self.y_scaler.inverse_transform(y_pred)
         
         # calculate mse for predictions
-        mse = mean_squared_error(y, y_pred)
+        mse = mean_squared_error(y, predictions)
         # square root of mse
         rmse = math.sqrt(mse)
         return rmse # Replace this code with your own
