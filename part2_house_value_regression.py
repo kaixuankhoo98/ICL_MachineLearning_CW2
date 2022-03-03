@@ -71,21 +71,17 @@ class Regressor(nn.Module):
         self.y_scaler = preprocessing.RobustScaler()
         
         # pre-process the data
-        print("before pp call")
         x, _ = self._preprocessor(x, (y if isinstance(y, pd.DataFrame) else None), training = True)
-        print("after pp call")
         """ SORT OUT: This is expecting a tensor of torch.Size([11558, 13]) rather than (11558, 9), need to work out how to change"""
         self.input_size = x.shape[1]
         self.output_size = 1 
         """"""
-        print("after input")
         self.nb_epoch = nb_epoch
         self.batch_size = batch_size
        
         # self.layers is a list of all the layers in the network
         self.layers = nn.ModuleList()
         self.layers.append(nn.Linear(self.input_size, neurons[0]))
-        print("activations")
         if activations[0] == 'relu':
             self.layers.append(nn.ReLU())
         if activations[0] == 'sigmoid':
@@ -110,7 +106,6 @@ class Regressor(nn.Module):
 
         # no activation for output layer because we're predicting an unbounded score.
         self.criterion = nn.MSELoss()
-        print("end constructor")
         return
 
         #######################################################################
@@ -168,7 +163,6 @@ class Regressor(nn.Module):
 
     
     def _preprocessor(self, x, y = None, training = False):
-        print("pp start")
         """ 
         Preprocess input of the network.
           
@@ -218,7 +212,6 @@ class Regressor(nn.Module):
             return(x_tensor, y_tensor)
 
         # Return preprocessed x and y
-        print("pp return")
         return x_tensor, (y if isinstance(y, pd.DataFrame) else None)
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -242,12 +235,14 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-
+        print("before pp")
         (X, Y) = self._preprocessor(x, y = y, training = True) 
-
+        print("post")
+        X = X.float()
+        Y = Y.float()
         # prepare data for forward pass
         # use Pytorch utilities for data preparation
-
+        print(1)
         dataset = torch.utils.data.TensorDataset(X, Y)
 
         average_loss_per_epoch = []
@@ -255,9 +250,11 @@ class Regressor(nn.Module):
         # set model to training mode
 
         self.train()
+        print(2)
         for epoch in range(self.nb_epoch):
             train_loader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
             total_loss_per_epoch = 0.0
+            print(epoch)
             for i, (input, labels) in enumerate(train_loader, 0):
                 # forward pass
                 if optimizer is not None:
@@ -284,6 +281,7 @@ class Regressor(nn.Module):
         # plt.xlabel("Epoch number")
         # plt.ylabel("Average loss at each epoch")
         # plt.show()
+        print("return")
         return self
 
         #######################################################################
