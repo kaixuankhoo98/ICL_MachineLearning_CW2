@@ -40,7 +40,7 @@ https://stackoverflow.com/questions/50307707/convert-pandas-dataframe-to-pytorch
 
 class Regressor(nn.Module):
 
-    def __init__(self, x, y = None, nb_epoch = 1000, batch_size = 32, neurons = [50], activations = ['relu']): 
+    def __init__(self, x, y = None, nb_epoch = 100, batch_size = 32, neurons = [50], activations = ['relu']): 
         """ 
         Initialise the model.
           
@@ -254,7 +254,7 @@ class Regressor(nn.Module):
         for epoch in range(self.nb_epoch):
             train_loader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
             total_loss_per_epoch = 0.0
-            print(epoch)
+            print(self.nb_epoch)
             for i, (input, labels) in enumerate(train_loader, 0):
                 # forward pass
                 if optimizer is not None:
@@ -518,8 +518,8 @@ def example_main():
     Y = data.loc[:, [output_label]]
     # TRAINING
     # splitting out a held-out data set for validation and testing.
-    x_train, x_val_and_test, y_train, y_val_and_test = train_test_split(X, Y, test_size=0.3)
-    x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
+    x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=0.2)
+    #x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
     #TODO: think about whether we need x_val, y_val. Think we need it for hyperparameter tuning.
     #       we have training (70%), val (15%), and testing (15%) subsets for both x and y.
 
