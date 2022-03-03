@@ -12,6 +12,7 @@ from sklearn import preprocessing
 from sklearn.model_selection import train_test_split, GridSearchCV # to ensure there's a held-out dataset...
 import random
 from itertools import product
+import matplotlib.pyplot as plt
 
 # # FROM THE COLAB e.g. You should set a random seed to ensure that your results are reproducible.
 torch.manual_seed(0)
@@ -284,13 +285,13 @@ class Regressor(nn.Module):
             # print("y post normalisation: ", y)
             # print("length of X: ", len(x), " & length of y: ", len(y))
 
-            print(20)
+        
             y_tensor = torch.from_numpy(np.array(y)).float()
             # print("y_tensor: ", y_tensor)
          #   print(17)
-         print(21)
+         #print(21)
             return(x_tensor, y_tensor)
-
+        print(20)
         # Return preprocessed x and y
         return x_tensor
         #######################################################################
@@ -352,6 +353,12 @@ class Regressor(nn.Module):
             if epoch % 10 == 0:
                 print("Epoch ", epoch, ", Average Training Loss ", average_training_loss)
         # TODO why is it going through the epochs so slowly?
+
+        # plt.title("Training Loss")
+        # plt.plot(range(len(average_loss_per_epoch)),average_loss_per_epoch)
+        # plt.xlabel("Epoch number")
+        # plt.ylabel("Average loss at each epoch")
+        # plt.show()
 
         return self
 
@@ -481,6 +488,8 @@ def RegressorHyperParameterSearch(x,y):
     # setting params to test
     learning_rates = [0.1,0.001,0.0001,0.00001]
     batch_size = [16,32,64]
+    neurons = [[120, 60],[5,5],[100, 50]]
+    activations = [['relu', 'sigmoid'], ['relu', 'sigmoid'], ['relu', 'sigmoid']]
 
     hyperparameters = list(product(learning_rates, batch_size))
 
@@ -491,12 +500,58 @@ def RegressorHyperParameterSearch(x,y):
     x_train, x_val_and_test, y_train, y_val_and_test = train_test_split(x, y, test_size=0.3)
     x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
 
-    for lr in learning_rates:
-        print("Testing learning rates:")
-        print(lr)
-        regressor = Regressor(x_train, y_train, nb_epoch = 100)#.to(device)
+    # for lr in learning_rates:
+    #     print("Testing learning rates:")
+    #     print(lr)
+    #     regressor = Regressor(x_train, y_train, nb_epoch = 100)#.to(device)
+    #     # Create instance of optimizer
+    #     optimizer = optim.SGD(regressor.parameters(), lr=lr, momentum=0.5) #TODO: not sure why we need a momentum
+
+    #     regressor.fit(x_train, y_train, optimizer)
+    #     save_regressor(regressor)
+
+        
+    #     # Error
+    #     error = regressor.score(x_test, y_test)
+
+    #     if error < min_error:
+    #         min_error = error
+    #         best_lr = lr
+    # print("Best learning rate: ", best_lr)
+    # print("Lowest error for lr: ", min_error)
+
+    # min_error = 80000
+
+    # for bs in batch_size:
+    #     print("Testing batch size:")
+    #     print(bs)
+    #     regressor = Regressor(x_train, y_train, nb_epoch = 100, batch_size = bs)#.to(device)
+    #     # Create instance of optimizer
+    #     optimizer = optim.SGD(regressor.parameters(), lr=best_lr, momentum=0.5) #TODO: not sure why we need a momentum
+
+    #     regressor.fit(x_train, y_train, optimizer)
+    #     save_regressor(regressor)
+
+        
+    #     # Error
+    #     error = regressor.score(x_test, y_test)
+
+    #     if error < min_error:
+    #         min_error = error
+    #         best_bs = bs
+
+    # print("Best batch size: ", best_bs)
+    # print("with lowest error of: ", min_error)
+
+
+    min_error = 80000
+
+    for i,j in zip(neurons, activations):
+        print("Testing neurons size:")
+        print(i)
+        regressor = Regressor(x_train, y_train, nb_epoch = 100, batch_size = 64, neurons = i, activations =j)#.to(device)
         # Create instance of optimizer
-        optimizer = optim.SGD(regressor.parameters(), lr=lr, momentum=0.5) #TODO: not sure why we need a momentum
+        optimizer = optim.SGD(regressor.parameters(), lr=.1, momentum=0.5) #TODO: not sure why we need a momentum
 
         regressor.fit(x_train, y_train, optimizer)
         save_regressor(regressor)
@@ -507,30 +562,10 @@ def RegressorHyperParameterSearch(x,y):
 
         if error < min_error:
             min_error = error
-            best_lr = lr
-    print("Best learning rate:")
-    print(best_lr)
+            best_n = i
 
-    for bs in batch_size:
-        print("Testing batch size:")
-        print(bs)
-        regressor = Regressor(x_train, y_train, nb_epoch = 100, batch_size = bs)#.to(device)
-        # Create instance of optimizer
-        optimizer = optim.SGD(regressor.parameters(), lr=best_lr, momentum=0.5) #TODO: not sure why we need a momentum
-
-        regressor.fit(x_train, y_train, optimizer)
-        save_regressor(regressor)
-
-        
-        # Error
-        error = regressor.score(x_test, y_test)
-
-        if error < min_error:
-            min_error = error
-            best_bs = bs
-
-    print("Best batch size:")
-    print(best_bs)
+    print("Best neurons: ", best_n)
+    print("with lowest error of: ", min_error)
 
 
 
@@ -567,8 +602,8 @@ def example_main():
     # Spliting input and output
     X = data.loc[:, data.columns != output_label]
     Y = data.loc[:, [output_label]]
-    # # TRAINING
-    # # splitting out a held-out data set for validation and testing.
+    # TRAINING
+    # splitting out a held-out data set for validation and testing.
     # x_train, x_val_and_test, y_train, y_val_and_test = train_test_split(X, Y, test_size=0.3)
     # x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
     # #TODO: think about whether we need x_val, y_val. Think we need it for hyperparameter tuning.
