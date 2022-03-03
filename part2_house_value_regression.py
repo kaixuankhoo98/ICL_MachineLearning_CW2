@@ -265,21 +265,21 @@ class Regressor(nn.Module):
         # print("x_tensor: ", x_tensor)
 
         # Normalise y if gievn
-        print(16)
+        #print(16)
         if y is not None:
-            print(17)
+          #  print(17)
             testing_column_to_normalize = ['median_house_value']
             if training:
                 self.y_scalar = self.y_scaler.fit(y.loc[:, testing_column_to_normalize])
                 y = self.y_scaler.transform(y.loc[:, testing_column_to_normalize])
-                print(18)
+         #       print(18)
                 # self.y_scalar = self.y_scaler.fit(y)
                 # y = self.y_scaler.transform(y)
                 
             else:
                 y = self.y_scaler.transform(y.loc[:, testing_column_to_normalize])
                 # y = self.y_scaler.transform(y)
-                print(19)
+                #print(19)
 
             # print("X post normalisation: ", x)
             # print("y post normalisation: ", y)
@@ -291,7 +291,7 @@ class Regressor(nn.Module):
          #   print(17)
          #print(21)
             return(x_tensor, y_tensor)
-        print(20)
+        #print(20)
         # Return preprocessed x and y
         return x_tensor
         #######################################################################
@@ -316,16 +316,20 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        
+        print(1)
         # print("In fit, before pre-processing, y: ", y)
         (X, Y) = self._preprocessor(x, y = y, training = True) # Do not forget
+        print(2)
         # print("In fit, after pre-processing, X: ", X, " & Y: ", Y)
         # prepare data for forward pass
         # use Pytorch utilities for data preparation https://discuss.pytorch.org/t/what-do-tensordataset-and-dataloader-do/107017
+        print(3)
         dataset = torch.utils.data.TensorDataset(X, Y)
+        print(4)
         average_loss_per_epoch = []
 
         # set model to training mode: https://stackoverflow.com/questions/60018578/what-does-model-eval-do-in-pytorch
+        print(5)
         self.train()
         for epoch in range(self.nb_epoch):
             train_loader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
@@ -359,7 +363,7 @@ class Regressor(nn.Module):
         # plt.xlabel("Epoch number")
         # plt.ylabel("Average loss at each epoch")
         # plt.show()
-
+        print(6)
         return self
 
         #######################################################################
@@ -488,8 +492,8 @@ def RegressorHyperParameterSearch(x,y):
     # setting params to test
     learning_rates = [0.1,0.001,0.0001,0.00001]
     batch_size = [16,32,64]
-    neurons = [[120, 60],[5,5],[100, 50]]
-    activations = [['relu', 'sigmoid'], ['relu', 'sigmoid'], ['relu', 'sigmoid']]
+    neurons = [[120, 60],[5,5],[100, 50],[100]]
+    activations = [['relu', 'sigmoid'], ['relu', 'sigmoid'], ['relu', 'sigmoid'],['relu']]
 
     hyperparameters = list(product(learning_rates, batch_size))
 
