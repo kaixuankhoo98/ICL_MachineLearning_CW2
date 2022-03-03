@@ -70,19 +70,19 @@ class Regressor(nn.Module):
             # see https://michael-fuchs-python.netlify.app/2019/08/31/feature-scaling-with-scikit-learn/ for explanation.
         self.y_scaler = preprocessing.RobustScaler()
         
-        
+        print(1)
         # pre-process the data
         x, _ = self._preprocessor(
             x, (y if isinstance(y, pd.DataFrame) else None),
             training = True
         )
-        print(1)
+        print(2)
+        
         """ SORT OUT: This is expecting a tensor of torch.Size([11558, 13]) rather than (11558, 9), need to work out how to change"""
         self.input_size = x.shape[1]
-        print(1.5)
         self.output_size = 1 
         """"""
-        print(2)
+        
         self.nb_epoch = nb_epoch
         self.batch_size = batch_size
        
