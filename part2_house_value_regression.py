@@ -49,7 +49,7 @@ class Regressor(nn.Module):
                 (batch_size, input_size), used to compute the size 
                 of the network.
             - nb_epoch {int} -- number of epoch to train the network.
-            - neurons is a list of integers, length is the number of layers
+            - neurons is a list of integers, length is the number of hidden layers
                 and values are the number of neurons in corresponding layer
             - activations is a list of strings as activation functions,
                 must match the length of neurons
@@ -72,7 +72,6 @@ class Regressor(nn.Module):
         
         # pre-process the data
         x, _ = self._preprocessor(x, (y if isinstance(y, pd.DataFrame) else None), training = True)
-        """ SORT OUT: This is expecting a tensor of torch.Size([11558, 13]) rather than (11558, 9), need to work out how to change"""
         self.input_size = x.shape[1]
         self.output_size = 1 
         """"""
@@ -235,14 +234,11 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        print("before pp")
         (X, Y) = self._preprocessor(x, y = y, training = True) 
-        print("post")
         X = X.float()
         Y = Y.float()
         # prepare data for forward pass
         # use Pytorch utilities for data preparation
-        print(1)
         dataset = torch.utils.data.TensorDataset(X, Y)
 
         average_loss_per_epoch = []
@@ -254,7 +250,6 @@ class Regressor(nn.Module):
         for epoch in range(self.nb_epoch):
             train_loader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
             total_loss_per_epoch = 0.0
-            print(self.nb_epoch)
             for i, (input, labels) in enumerate(train_loader, 0):
                 # forward pass
                 if optimizer is not None:
@@ -281,7 +276,6 @@ class Regressor(nn.Module):
         # plt.xlabel("Epoch number")
         # plt.ylabel("Average loss at each epoch")
         # plt.show()
-        print("return")
         return self
 
         #######################################################################
@@ -305,14 +299,10 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        print(1.1)
         X, _ = self._preprocessor(x, training = False) # Do not forget
-        print(1.2)
         with torch.no_grad(): # for less memory consumption
             y_pred = self(X)            
-        print(1.3)
         predictions = self.y_scaler.inverse_transform(y_pred)
-        print(1.4)
         return predictions
 
         #######################################################################
