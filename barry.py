@@ -199,14 +199,14 @@ class Regressor(nn.Module):
 
         # Normalise X
         if training:
-            # self.x_scaler = self.x_scaler.fit(x.loc[:, training_columns_to_normalize])
-            # x = self.x_scaler.transform(x.loc[:, training_columns_to_normalize])
-            self.x_scaler = self.x_scaler.fit(x)
-            x = self.x_scaler.transform(x)
+            self.x_scaler = self.x_scaler.fit(x.loc[:, training_columns_to_normalize])
+            x = self.x_scaler.transform(x.loc[:, training_columns_to_normalize])
+            # self.x_scaler = self.x_scaler.fit(x)
+            # x = self.x_scaler.transform(x)
 
         else:
-            # x = self.x_scaler.transform(x.loc[:, training_columns_to_normalize])
-            x = self.x_scaler.transform(x)
+            x = self.x_scaler.transform(x.loc[:, training_columns_to_normalize])
+            # x = self.x_scaler.transform(x)
 
         # convert X to tensor TO DO: COME BACK TO
         x_tensor = torch.from_numpy(np.array(x)).float()
@@ -216,14 +216,15 @@ class Regressor(nn.Module):
         if y is not None:
             testing_column_to_normalize = ['median_house_value']
             if training:
-                # self.y_scalar = self.y_scaler.fit(y.loc[:,testing_column_to_normalize])
-                # y = self.y_scaler.transform(y.loc[:,testing_column_to_normalize])])
+                self.y_scalar = self.y_scaler.fit(y.loc[:, testing_column_to_normalize])
+                y = self.y_scaler.transform(y.loc[:, testing_column_to_normalize])
 
-                self.y_scalar = self.y_scaler.fit(y)
-                y = self.y_scaler.transform(y)
+                # self.y_scalar = self.y_scaler.fit(y)
+                # y = self.y_scaler.transform(y)
                 
             else:
-                y = self.y_scaler.transform(y)
+                y = self.y_scaler.transform(y.loc[:, testing_column_to_normalize])
+                # y = self.y_scaler.transform(y)
 
 
             # print("X post normalisation: ", x)

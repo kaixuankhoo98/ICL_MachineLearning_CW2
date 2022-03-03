@@ -38,8 +38,7 @@ https://stackoverflow.com/questions/50307707/convert-pandas-dataframe-to-pytorch
 
 class Regressor(nn.Module):
 
-    def __init__(self, x, y = None, nb_epoch = 1000, batch_size = 32, n_hidden = 1): 
-        # n_hidden refers to the size of (i.e., number of neurons in) your hidden layers.
+    def __init__(self, x, y = None, nb_epoch = 1000, batch_size = 32, neurons = [120, 60, 32, 16, 8], activations = ['relu', 'sigmoid', 'tanh', 'linear', 'linear']): 
         """ 
         Initialise the model.
           
@@ -48,11 +47,18 @@ class Regressor(nn.Module):
                 (batch_size, input_size), used to compute the size 
                 of the network.
             - nb_epoch {int} -- number of epoch to train the network.
+            - neurons is a list of integers, length is the number of layers
+                and values are the number of neurons in corresponding layer
+            - activations is a list of strings as activation functions,
+                must match the length of neurons
+              
 
         """
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+
+        assert(len(neurons) == len(activations))
 
         # Replace this code with your own
         super().__init__() # call constructor of superclass
@@ -89,14 +95,40 @@ class Regressor(nn.Module):
         #TODO get clear on what the batch and epoch size should be and why.
         self.nb_epoch = nb_epoch
         self.batch_size = batch_size
-        self.linear1 = nn.Linear(
-            in_features=self.input_size, out_features=n_hidden, bias=True
-        )
-        self.linear2 = nn.Linear(
-            in_features=n_hidden, out_features=self.output_size, bias=True
-        )
-        nn.init.xavier_uniform_(self.linear1.weight) # assigning random weights to connections
-        nn.init.xavier_uniform_(self.linear2.weight)
+
+        # self.first_layer = nn.Linear(
+        #     in_features=self.input_size, out_features=neurons[0], bias=True
+        # )
+        # self.linear2 = nn.Linear(
+        #     in_features=n_hidden, out_features=self.output_size, bias=True
+        # )
+        # nn.init.xavier_uniform_(self.linear1.weight) # assigning random weights to connections
+        # nn.init.xavier_uniform_(self.linear2.weight)
+
+        # self.layers is a list of all the layers in the network
+        self.layers = nn.ModuleList()
+        self.layers.append(nn.Linear(self.input_size, neurons[0]))
+        # nn.init.xavier_uniform_(self.layers[0])
+        if activations[0] == 'relu':
+            self.layers.append(nn.ReLU())
+        if activations[0] == 'sigmoid':
+            self.layers.append(nn.Sigmoid())
+        if activations[0] == 'tanh':
+            self.layers.append(nn.Tanh())
+
+        # append to neurons list for every extra layer of neurons
+        for i in range(1,len(neurons)):
+            self.layers.append(nn.Linear(neurons[i-1],neurons[i]))
+            # nn.init.xavier_uniform_(self.layers[-1]) # assigning random weights
+            if activations[i] == 'relu':
+                self.layers.append(nn.ReLU())
+            if activations[i] == 'sigmoid':
+                self.layers.append(nn.Sigmoid())
+            if activations[i] == 'tanh':
+                self.layers.append(nn.Tanh())
+        # last layer
+        self.layers.append(nn.Linear(neurons[-1],self.output_size))
+
         # no activation for output layer because we're predicting an unbounded score.
         self.criterion = nn.MSELoss()
         #TODO think about what loss function we're gonna use and why; just using MSELoss for now
@@ -113,9 +145,15 @@ class Regressor(nn.Module):
         # https://machinelearningmastery.com/gentle-introduction-mini-batch-gradient-descent-configure-batch-size/
         # https://stats.stackexchange.com/questions/153531/what-is-batch-size-in-neural-network
         # feature_count = inputs.shape[0] * inputs.shape[1]
-        out = self.linear1(inputs) #.view(-1, feature_count)
-        out = torch.relu(out)
-        out = self.linear2(out)
+        # out = self.linear1(inputs) #.view(-1, feature_count)
+        # out = torch.relu(out)
+        # out = self.linear2(out)
+
+        out = self.layers[0](inputs)
+        
+        for layer in self.layers[1:]:
+            out = layer(out)
+
         return out
     """ the `forward` method to defines the computation that takes place
      on the forward pass. A corresponding  `backward` method, which
