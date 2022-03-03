@@ -40,7 +40,7 @@ https://stackoverflow.com/questions/50307707/convert-pandas-dataframe-to-pytorch
 
 class Regressor(nn.Module):
 
-    def __init__(self, x, y = None, nb_epoch = 1000, batch_size = 32, neurons = [120, 60, 32, 16, 8], activations = ['relu', 'sigmoid', 'tanh', 'linear', 'linear']): 
+    def __init__(self, x, y = None, nb_epoch = 1000, batch_size = 32, neurons = [50], activations = ['relu']): 
         """ 
         Initialise the model.
           
@@ -60,62 +60,35 @@ class Regressor(nn.Module):
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-      #  print(1)
 
         assert(len(neurons) == len(activations))
-       # print(2)
-        # Replace this code with your own
         super().__init__() # call constructor of superclass
-        #print(3)
+
         """ Moved Scalars into the constructor"""
         self.x_scaler = preprocessing.RobustScaler() 
             # https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html
             # see https://michael-fuchs-python.netlify.app/2019/08/31/feature-scaling-with-scikit-learn/ for explanation.
         self.y_scaler = preprocessing.RobustScaler()
-        """"""
-        #print("pre preprocessing")
-        """
-        Removed below section as shouldn't be pre-processing in constructor
-        """
+        
+        
         # pre-process the data
         x, _ = self._preprocessor(
             x, (y if isinstance(y, pd.DataFrame) else None),
             training = True
         )
-        """"""
-        #print("post- preprocessing")
-
-        #TODO not entirely sure what the input_size should be...
-        # print("adsa x shape: ", x.shape) # (11558, 9)
-        #print("adsa x_train shape: ", x_train.shape) # torch.Size([11558, 13])
-
-
+        print(1)
         """ SORT OUT: This is expecting a tensor of torch.Size([11558, 13]) rather than (11558, 9), need to work out how to change"""
         self.input_size = x.shape[1]
+        print(1.5)
         self.output_size = 1 
         """"""
-        #print(4)
-
-        # because we're predicting a single median value.
-        #TODO get clear on what the batch and epoch size should be and why.
+        print(2)
         self.nb_epoch = nb_epoch
         self.batch_size = batch_size
-        #print(5)
-        # self.first_layer = nn.Linear(
-        #     in_features=self.input_size, out_features=neurons[0], bias=True
-        # )
-        # self.linear2 = nn.Linear(
-        #     in_features=n_hidden, out_features=self.output_size, bias=True
-        # )
-        # nn.init.xavier_uniform_(self.linear1.weight) # assigning random weights to connections
-        # nn.init.xavier_uniform_(self.linear2.weight)
-        #print("pre-layer making")
-
+       
         # self.layers is a list of all the layers in the network
         self.layers = nn.ModuleList()
         self.layers.append(nn.Linear(self.input_size, neurons[0]))
-        # nn.init.xavier_uniform_(self.layers[0])
-        #print(6)
         
         if activations[0] == 'relu':
             self.layers.append(nn.ReLU())
@@ -123,7 +96,7 @@ class Regressor(nn.Module):
             self.layers.append(nn.Sigmoid())
         if activations[0] == 'tanh':
             self.layers.append(nn.Tanh())
-        #print(7)
+
         # append to neurons list for every extra layer of neurons
         for i in range(1,len(neurons)):
             self.layers.append(nn.Linear(neurons[i-1],neurons[i]))
@@ -135,14 +108,12 @@ class Regressor(nn.Module):
             if activations[i] == 'tanh':
                 self.layers.append(nn.Tanh())
         # last layer
-        #print(8)
+
         self.layers.append(nn.Linear(neurons[-1],self.output_size))
-        #print(9)
+
         # no activation for output layer because we're predicting an unbounded score.
         self.criterion = nn.MSELoss()
-        #TODO think about what loss function we're gonna use and why; just using MSELoss for now
-                # set scalers
-        #print(10)
+
         return
 
         #######################################################################
@@ -316,20 +287,19 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        print(1)
+
         # print("In fit, before pre-processing, y: ", y)
         (X, Y) = self._preprocessor(x, y = y, training = True) # Do not forget
-        print(2)
         # print("In fit, after pre-processing, X: ", X, " & Y: ", Y)
         # prepare data for forward pass
         # use Pytorch utilities for data preparation https://discuss.pytorch.org/t/what-do-tensordataset-and-dataloader-do/107017
-        print(3)
+
         dataset = torch.utils.data.TensorDataset(X, Y)
-        print(4)
+
         average_loss_per_epoch = []
 
         # set model to training mode: https://stackoverflow.com/questions/60018578/what-does-model-eval-do-in-pytorch
-        print(5)
+
         self.train()
         for epoch in range(self.nb_epoch):
             train_loader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
@@ -363,7 +333,6 @@ class Regressor(nn.Module):
         # plt.xlabel("Epoch number")
         # plt.ylabel("Average loss at each epoch")
         # plt.show()
-        print(6)
         return self
 
         #######################################################################
@@ -608,28 +577,42 @@ def example_main():
     Y = data.loc[:, [output_label]]
     # TRAINING
     # splitting out a held-out data set for validation and testing.
-    # x_train, x_val_and_test, y_train, y_val_and_test = train_test_split(X, Y, test_size=0.3)
-    # x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
-    # #TODO: think about whether we need x_val, y_val. Think we need it for hyperparameter tuning.
-    # #       we have training (70%), val (15%), and testing (15%) subsets for both x and y.
+    x_train, x_val_and_test, y_train, y_val_and_test = train_test_split(X, Y, test_size=0.3)
+    x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
+    #TODO: think about whether we need x_val, y_val. Think we need it for hyperparameter tuning.
+    #       we have training (70%), val (15%), and testing (15%) subsets for both x and y.
 
-    # print(x_train)
+    print(x_train)
 
-    # # Prepocesses & learns appropriate transformation
-    # regressor = Regressor(x_train, y_train, nb_epoch = 100)#.to(device)
-    # # Create instance of optimizer
-    # optimizer = optim.SGD(regressor.parameters(), lr=0.01, momentum=0.5) #TODO: not sure why we need a momentum
+    # Prepocesses & learns appropriate transformation
+    regressor = Regressor(x_train, y_train, nb_epoch = 100)#.to(device)
+    # Create instance of optimizer
+    optimizer = optim.SGD(regressor.parameters(), lr=0.01, momentum=0.5) #TODO: not sure why we need a momentum
 
-    # regressor.fit(x_train, y_train, optimizer)
-    # save_regressor(regressor)
+    regressor.fit(x_train, y_train, optimizer)
+    save_regressor(regressor)
 
         
-    # # Error
-    # error = regressor.score(x_test, y_test)
-    # print("\nRegressor error: {}\n".format(error)) 
+    # Error
+    error = regressor.score(x_test, y_test)
+    print("\nRegressor error: {}\n".format(error)) 
 
 
-    RegressorHyperParameterSearch(X,Y)
+    regressor2 = Regressor(x_train, y_train, nb_epoch = 100, neurons = [100,50],batch_size = 64,activations = ['relu', 'sigmoid'])#.to(device)
+    # Create instance of optimizer
+    optimizer = optim.SGD(regressor2.parameters(), lr=0.1, momentum=0.5) #TODO: not sure why we need a momentum
+
+    regressor2.fit(x_train, y_train, optimizer)
+    save_regressor(regressor2)
+
+        
+    # Error
+    error2 = regressor2.score(x_test, y_test)
+    print("\nRegressor1 error: {}\n".format(error)) 
+    print("\nRegressor2 error: {}\n".format(error2)) 
+
+
+    #RegressorHyperParameterSearch(X,Y)
 
 if __name__ == "__main__":
     example_main()
