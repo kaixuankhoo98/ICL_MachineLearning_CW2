@@ -305,14 +305,14 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-
+        print(1.1)
         X, _ = self._preprocessor(x, training = False) # Do not forget
-
+        print(1.2)
         with torch.no_grad(): # for less memory consumption
             y_pred = self(x)            
-
+        print(1.3)
         predictions = self.y_scaler.inverse_transform(y_pred)
-
+        print(1.4)
         return predictions
 
         #######################################################################
