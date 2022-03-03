@@ -40,7 +40,7 @@ https://stackoverflow.com/questions/50307707/convert-pandas-dataframe-to-pytorch
 
 class Regressor(nn.Module):
 
-    def __init__(self, x, y = None, nb_epoch = 1000, batch_size = 32, neurons = [50], activations = ['relu']): 
+    def __init__(self, x, y = None, nb_epoch = 100, batch_size = 32, neurons = [50], activations = ['relu']): 
         """ 
         Initialise the model.
           
@@ -70,32 +70,25 @@ class Regressor(nn.Module):
             # see https://michael-fuchs-python.netlify.app/2019/08/31/feature-scaling-with-scikit-learn/ for explanation.
         self.y_scaler = preprocessing.RobustScaler()
         
-        print(1)
         # pre-process the data
-        x, _ = self._preprocessor(
-            x, (y if isinstance(y, pd.DataFrame) else None),
-            training = True
-        )
-        print(2)
-        
+        x, _ = self._preprocessor(x, (y if isinstance(y, pd.DataFrame) else None), training = True)
         """ SORT OUT: This is expecting a tensor of torch.Size([11558, 13]) rather than (11558, 9), need to work out how to change"""
         self.input_size = x.shape[1]
         self.output_size = 1 
         """"""
-        
         self.nb_epoch = nb_epoch
         self.batch_size = batch_size
        
         # self.layers is a list of all the layers in the network
         self.layers = nn.ModuleList()
         self.layers.append(nn.Linear(self.input_size, neurons[0]))
-        
         if activations[0] == 'relu':
             self.layers.append(nn.ReLU())
         if activations[0] == 'sigmoid':
             self.layers.append(nn.Sigmoid())
         if activations[0] == 'tanh':
             self.layers.append(nn.Tanh())
+
 
         # append to neurons list for every extra layer of neurons
         for i in range(1,len(neurons)):
@@ -113,7 +106,6 @@ class Regressor(nn.Module):
 
         # no activation for output layer because we're predicting an unbounded score.
         self.criterion = nn.MSELoss()
-
         return
 
         #######################################################################
@@ -195,14 +187,11 @@ class Regressor(nn.Module):
 
         # encode textual values using one-hot encoding
         x = self.ohe_categorical(x)
-
         # handle missing values.
         x = x.fillna(x.mean()) 
-
         # new preprocessing values needed if model is training
         training_columns_to_normalize = ['longitude', 'latitude', 'housing_median_age', 'total_rooms', 'total_bedrooms', 
                                         'population', 'households', 'median_income']
-
         # Normalise X
         if training:
             self.x_scaler = self.x_scaler.fit(x.loc[:, training_columns_to_normalize])
@@ -210,9 +199,7 @@ class Regressor(nn.Module):
 
         else:
             x = self.x_scaler.transform(x.loc[:, training_columns_to_normalize])
-
         x_tensor = torch.from_numpy(np.array(x)).float()
-
         # Normalise y if given
         if y is not None:
             testing_column_to_normalize = ['median_house_value']
@@ -221,12 +208,11 @@ class Regressor(nn.Module):
                 y = self.y_scaler.transform(y.loc[:, testing_column_to_normalize])   
             else:
                 y = self.y_scaler.transform(y.loc[:, testing_column_to_normalize])
-
             y_tensor = torch.from_numpy(np.array(y)).float()
             return(x_tensor, y_tensor)
 
         # Return preprocessed x and y
-        return x_tensor
+        return x_tensor, (y if isinstance(y, pd.DataFrame) else None)
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -249,12 +235,14 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-
+        print("before pp")
         (X, Y) = self._preprocessor(x, y = y, training = True) 
-
+        print("post")
+        X = X.float()
+        Y = Y.float()
         # prepare data for forward pass
         # use Pytorch utilities for data preparation
-
+        print(1)
         dataset = torch.utils.data.TensorDataset(X, Y)
 
         average_loss_per_epoch = []
@@ -262,9 +250,11 @@ class Regressor(nn.Module):
         # set model to training mode
 
         self.train()
+        print(2)
         for epoch in range(self.nb_epoch):
             train_loader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
             total_loss_per_epoch = 0.0
+            print(self.nb_epoch)
             for i, (input, labels) in enumerate(train_loader, 0):
                 # forward pass
                 if optimizer is not None:
@@ -291,6 +281,7 @@ class Regressor(nn.Module):
         # plt.xlabel("Epoch number")
         # plt.ylabel("Average loss at each epoch")
         # plt.show()
+        print("return")
         return self
 
         #######################################################################
@@ -314,14 +305,14 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-
+        print(1.1)
         X, _ = self._preprocessor(x, training = False) # Do not forget
-
+        print(1.2)
         with torch.no_grad(): # for less memory consumption
-            y_pred = self(x)            
-
+            y_pred = self(X)            
+        print(1.3)
         predictions = self.y_scaler.inverse_transform(y_pred)
-
+        print(1.4)
         return predictions
 
         #######################################################################
@@ -515,11 +506,11 @@ def example_main():
 
     ################## CODE TO UNDERSTAND the dataset ###################
 
-    """ rd.first_and_last_five_rows(data)
+    rd.first_and_last_five_rows(data)
     rd.summary_statistics(data)
     rd.dataset_datatypes(data)
     rd.missing_values(data)
-    print(data.shape) """
+    print(data.shape) 
     ################## PRE-PROVIDED CODE ###################
 
     # Spliting input and output
@@ -527,8 +518,8 @@ def example_main():
     Y = data.loc[:, [output_label]]
     # TRAINING
     # splitting out a held-out data set for validation and testing.
-    x_train, x_val_and_test, y_train, y_val_and_test = train_test_split(X, Y, test_size=0.3)
-    x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
+    x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=0.2)
+    #x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
     #TODO: think about whether we need x_val, y_val. Think we need it for hyperparameter tuning.
     #       we have training (70%), val (15%), and testing (15%) subsets for both x and y.
 
@@ -561,8 +552,6 @@ def example_main():
     print("\nRegressor1 error: {}\n".format(error)) 
     print("\nRegressor2 error: {}\n".format(error2)) 
 
-
-    #RegressorHyperParameterSearch(X,Y)
 
 if __name__ == "__main__":
     example_main()
