@@ -71,29 +71,28 @@ class Regressor(nn.Module):
         self.y_scaler = preprocessing.RobustScaler()
         
         # pre-process the data
-        x, _ = self._preprocessor(
-            x, (y if isinstance(y, pd.DataFrame) else None),
-            training = True
-        )
-        
+        print("before pp call")
+        x, _ = self._preprocessor(x, (y if isinstance(y, pd.DataFrame) else None), training = True)
+        print("after pp call")
         """ SORT OUT: This is expecting a tensor of torch.Size([11558, 13]) rather than (11558, 9), need to work out how to change"""
         self.input_size = x.shape[1]
         self.output_size = 1 
         """"""
-        
+        print("after input")
         self.nb_epoch = nb_epoch
         self.batch_size = batch_size
        
         # self.layers is a list of all the layers in the network
         self.layers = nn.ModuleList()
         self.layers.append(nn.Linear(self.input_size, neurons[0]))
-        
+        print("activations")
         if activations[0] == 'relu':
             self.layers.append(nn.ReLU())
         if activations[0] == 'sigmoid':
             self.layers.append(nn.Sigmoid())
         if activations[0] == 'tanh':
             self.layers.append(nn.Tanh())
+
 
         # append to neurons list for every extra layer of neurons
         for i in range(1,len(neurons)):
@@ -111,7 +110,7 @@ class Regressor(nn.Module):
 
         # no activation for output layer because we're predicting an unbounded score.
         self.criterion = nn.MSELoss()
-
+        print("end constructor")
         return
 
         #######################################################################
@@ -169,6 +168,7 @@ class Regressor(nn.Module):
 
     
     def _preprocessor(self, x, y = None, training = False):
+        print("pp start")
         """ 
         Preprocess input of the network.
           
@@ -191,51 +191,34 @@ class Regressor(nn.Module):
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        print(1)
         # encode textual values using one-hot encoding
         x = self.ohe_categorical(x)
-        print(2)
         # handle missing values.
         x = x.fillna(x.mean()) 
-        print(3)
         # new preprocessing values needed if model is training
         training_columns_to_normalize = ['longitude', 'latitude', 'housing_median_age', 'total_rooms', 'total_bedrooms', 
                                         'population', 'households', 'median_income']
-        print(4)
         # Normalise X
         if training:
-            print(5.1)
             self.x_scaler = self.x_scaler.fit(x.loc[:, training_columns_to_normalize])
             x = self.x_scaler.transform(x.loc[:, training_columns_to_normalize])
 
         else:
-            print(5.2)
             x = self.x_scaler.transform(x.loc[:, training_columns_to_normalize])
-        print(6)
         x_tensor = torch.from_numpy(np.array(x)).float()
-        print(7)
         # Normalise y if given
         if y is not None:
-            print(8)
             testing_column_to_normalize = ['median_house_value']
-            print(9)
             if training:
-                print(10.1)
                 self.y_scalar = self.y_scaler.fit(y.loc[:, testing_column_to_normalize])
-                print(11.1)
                 y = self.y_scaler.transform(y.loc[:, testing_column_to_normalize])   
-                print(12.1)
             else:
-                print(10.2)
                 y = self.y_scaler.transform(y.loc[:, testing_column_to_normalize])
-                print(11.2)
-            print(13)
             y_tensor = torch.from_numpy(np.array(y)).float()
-            print(14)
             return(x_tensor, y_tensor)
 
         # Return preprocessed x and y
-        print("return!")
+        print("pp return")
         return x_tensor
         #######################################################################
         #                       ** END OF YOUR CODE **
