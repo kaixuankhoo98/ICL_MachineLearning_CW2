@@ -54,14 +54,21 @@ class Regressor(nn.Module):
         # Replace this code with your own
         super().__init__() # call constructor of superclass
 
+        """ Moved Scalars into the constructor"""
+        self.x_scaler = preprocessing.RobustScaler() 
+            # https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html
+            # see https://michael-fuchs-python.netlify.app/2019/08/31/feature-scaling-with-scikit-learn/ for explanation.
+        self.y_scaler = preprocessing.RobustScaler()
+        """"""
+
         """
         Removed below section as shouldn't be pre-processing in constructor
         """
-        #pre-process the data
-        # x_train, _ = self._preprocessor(
-        #     x, (y if isinstance(y, pd.DataFrame) else None),
-        #     training = True
-        # )
+        # pre-process the data
+        x, _ = self._preprocessor(
+            x, (y if isinstance(y, pd.DataFrame) else None),
+            training = True
+        )
         """"""
 
         #TODO not entirely sure what the input_size should be...
@@ -70,7 +77,7 @@ class Regressor(nn.Module):
 
 
         """ SORT OUT: This is expecting a tensor of torch.Size([11558, 13]) rather than (11558, 9), need to work out how to change"""
-        self.input_size = x.shape[1]+4
+        self.input_size = x.shape[1]
         self.output_size = 1 
         """"""
 
@@ -91,13 +98,6 @@ class Regressor(nn.Module):
         self.criterion = nn.MSELoss()
         #TODO think about what loss function we're gonna use and why; just using MSELoss for now
                 # set scalers
-
-        """ Moved Scalars into the constructor"""
-        self.x_scaler = preprocessing.RobustScaler() 
-            # https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html
-            # see https://michael-fuchs-python.netlify.app/2019/08/31/feature-scaling-with-scikit-learn/ for explanation.
-        self.y_scaler = preprocessing.RobustScaler()
-        """"""
 
         return
 
