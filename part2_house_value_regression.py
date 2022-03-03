@@ -59,18 +59,20 @@ class Regressor(nn.Module):
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        assert(len(neurons) == len(activations))
+        print(1)
 
+        assert(len(neurons) == len(activations))
+        print(2)
         # Replace this code with your own
         super().__init__() # call constructor of superclass
-
+        print(3)
         """ Moved Scalars into the constructor"""
         self.x_scaler = preprocessing.RobustScaler() 
             # https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html
             # see https://michael-fuchs-python.netlify.app/2019/08/31/feature-scaling-with-scikit-learn/ for explanation.
         self.y_scaler = preprocessing.RobustScaler()
         """"""
-
+        print("pre preprocessing")
         """
         Removed below section as shouldn't be pre-processing in constructor
         """
@@ -80,6 +82,7 @@ class Regressor(nn.Module):
             training = True
         )
         """"""
+        print("post- preprocessing")
 
         #TODO not entirely sure what the input_size should be...
         # print("adsa x shape: ", x.shape) # (11558, 9)
@@ -90,13 +93,13 @@ class Regressor(nn.Module):
         self.input_size = x.shape[1]
         self.output_size = 1 
         """"""
-
+        print(4)
 
         # because we're predicting a single median value.
         #TODO get clear on what the batch and epoch size should be and why.
         self.nb_epoch = nb_epoch
         self.batch_size = batch_size
-
+        print(5)
         # self.first_layer = nn.Linear(
         #     in_features=self.input_size, out_features=neurons[0], bias=True
         # )
@@ -105,18 +108,21 @@ class Regressor(nn.Module):
         # )
         # nn.init.xavier_uniform_(self.linear1.weight) # assigning random weights to connections
         # nn.init.xavier_uniform_(self.linear2.weight)
+        print("pre-layer making")
 
         # self.layers is a list of all the layers in the network
         self.layers = nn.ModuleList()
         self.layers.append(nn.Linear(self.input_size, neurons[0]))
         # nn.init.xavier_uniform_(self.layers[0])
+        print(6)
+        
         if activations[0] == 'relu':
             self.layers.append(nn.ReLU())
         if activations[0] == 'sigmoid':
             self.layers.append(nn.Sigmoid())
         if activations[0] == 'tanh':
             self.layers.append(nn.Tanh())
-
+        print(7)
         # append to neurons list for every extra layer of neurons
         for i in range(1,len(neurons)):
             self.layers.append(nn.Linear(neurons[i-1],neurons[i]))
@@ -128,13 +134,14 @@ class Regressor(nn.Module):
             if activations[i] == 'tanh':
                 self.layers.append(nn.Tanh())
         # last layer
+        print(8)
         self.layers.append(nn.Linear(neurons[-1],self.output_size))
-
+        print(9)
         # no activation for output layer because we're predicting an unbounded score.
         self.criterion = nn.MSELoss()
         #TODO think about what loss function we're gonna use and why; just using MSELoss for now
                 # set scalers
-
+        print(10)
         return
 
         #######################################################################
@@ -149,12 +156,12 @@ class Regressor(nn.Module):
         # out = self.linear1(inputs) #.view(-1, feature_count)
         # out = torch.relu(out)
         # out = self.linear2(out)
-
+        print(18)
         out = self.layers[0](inputs)
-        
+        print(19)
         for layer in self.layers[1:]:
             out = layer(out)
-
+        print(20)
         return out
     """ the `forward` method to defines the computation that takes place
      on the forward pass. A corresponding  `backward` method, which
@@ -216,7 +223,7 @@ class Regressor(nn.Module):
        
         see https://www.kaggle.com/dansbecker/using-categorical-data-with-one-hot-encoding if it works.
         '''
-
+        print(11)
         # print("trqw x shape:", x.shape)
         # print("trqw x:", x)
         # print(x.loc[:, ['ISLAND']])
@@ -224,8 +231,10 @@ class Regressor(nn.Module):
         x = self.ohe_categorical(x)
         # print("trqw x shape:", x.shape)
         # handle missing values.
+        print(12)
         x = x.fillna(x.mean()) #TODO: be able to explain why we fill the missing values with the mean.
         # print("trqw x shape:", x.shape)
+        print(13)
 
         # new preprocessing values needed if model is training
         training_columns_to_normalize = ['longitude', 'latitude', 'housing_median_age', 'total_rooms', 'total_bedrooms', 
@@ -237,7 +246,7 @@ class Regressor(nn.Module):
         """
         NEED TO SORT: not liking .loc, causes matrix multiplication error. Why? 
         """
-
+        print(14)
         # Normalise X
         if training:
             self.x_scaler = self.x_scaler.fit(x.loc[:, training_columns_to_normalize])
@@ -250,10 +259,12 @@ class Regressor(nn.Module):
             # x = self.x_scaler.transform(x)
 
         # convert X to tensor TO DO: COME BACK TO
+        print(15)
         x_tensor = torch.from_numpy(np.array(x)).float()
         # print("x_tensor: ", x_tensor)
 
         # Normalise y if gievn
+        print(16)
         if y is not None:
             testing_column_to_normalize = ['median_house_value']
             if training:
@@ -275,7 +286,7 @@ class Regressor(nn.Module):
 
             y_tensor = torch.from_numpy(np.array(y)).float()
             # print("y_tensor: ", y_tensor)
-
+            print(17)
             return(x_tensor, y_tensor)
 
         # Return preprocessed x and y
