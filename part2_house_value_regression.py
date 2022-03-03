@@ -1,3 +1,5 @@
+import math
+from sklearn.metrics import mean_squared_error
 import torch
 import torch.nn as nn
 import torch.nn.functional as F # includes key functions like loss function
@@ -8,7 +10,19 @@ import pandas as pd
 import read_data as rd
 from sklearn import preprocessing 
 from sklearn.model_selection import train_test_split # to ensure there's a held-out dataset...
-from sklearn.metrics import mean_squared_error as mse
+import random
+
+# # FROM THE COLAB e.g. You should set a random seed to ensure that your results are reproducible.
+torch.manual_seed(0)
+random.seed(0)
+
+# # # Setting use of GPU
+# use_cuda = torch.cuda.is_available()
+# device = torch.device('cuda' if use_cuda else 'cpu')
+    
+# print("Using GPU: {}".format(use_cuda))
+
+""" 2 MAIN PARTS TO SORT! """
 
 # Sources I've been working:
 """ 
@@ -21,13 +35,6 @@ https://stackoverflow.com/questions/50307707/convert-pandas-dataframe-to-pytorch
 
 
  """
-# FROM THE COLAB e.g. You should set a random seed to ensure that your results are reproducible.
-torch.manual_seed(0)
-# Setting use of GPU
-use_cuda = torch.cuda.is_available()
-device = torch.device('cuda' if use_cuda else 'cpu')
-    
-print("Using GPU: {}".format(use_cuda))
 
 class Regressor(nn.Module):
 
@@ -49,14 +56,35 @@ class Regressor(nn.Module):
 
         # Replace this code with your own
         super().__init__() # call constructor of superclass
+
+        """ Moved Scalars into the constructor"""
+        self.x_scaler = preprocessing.RobustScaler() 
+            # https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html
+            # see https://michael-fuchs-python.netlify.app/2019/08/31/feature-scaling-with-scikit-learn/ for explanation.
+        self.y_scaler = preprocessing.RobustScaler()
+        """"""
+
+        """
+        Removed below section as shouldn't be pre-processing in constructor
+        """
         # pre-process the data
-        x_train, _ = self._preprocessor(
+        x, _ = self._preprocessor(
             x, (y if isinstance(y, pd.DataFrame) else None),
             training = True
         )
+        """"""
+
         #TODO not entirely sure what the input_size should be...
-        self.input_size = x_train.shape[1]
+        # print("adsa x shape: ", x.shape) # (11558, 9)
+        #print("adsa x_train shape: ", x_train.shape) # torch.Size([11558, 13])
+
+
+        """ SORT OUT: This is expecting a tensor of torch.Size([11558, 13]) rather than (11558, 9), need to work out how to change"""
+        self.input_size = x.shape[1]
         self.output_size = 1 
+        """"""
+
+
         # because we're predicting a single median value.
         #TODO get clear on what the batch and epoch size should be and why.
         self.nb_epoch = nb_epoch
@@ -67,11 +95,13 @@ class Regressor(nn.Module):
         self.linear2 = nn.Linear(
             in_features=n_hidden, out_features=self.output_size, bias=True
         )
-        nn.init.xavier_uniform_(self.linear1.weight)
+        nn.init.xavier_uniform_(self.linear1.weight) # assigning random weights to connections
         nn.init.xavier_uniform_(self.linear2.weight)
         # no activation for output layer because we're predicting an unbounded score.
         self.criterion = nn.MSELoss()
         #TODO think about what loss function we're gonna use and why; just using MSELoss for now
+                # set scalers
+
         return
 
         #######################################################################
@@ -108,7 +138,16 @@ class Regressor(nn.Module):
 
         for i, dummy in enumerate(np.unique(ocean_proximity)):
             x[dummy] = encoded_ocean_prox[:,i]
-        
+
+        """Our test data did not have "ISLAND" in it, so the one hot encoding returns 12 features rather than 13 as in the test data
+        This causes a problem for the scaler transformation later, so we are making sure Island is included """
+        ocean_prox_variables = ['<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN']
+
+        for prox in ocean_prox_variables:
+            if prox not in x:
+                x[prox] = np.zeros(len(x))
+        """"""
+
         return x
 
 
@@ -135,26 +174,74 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-
         '''
        
         see https://www.kaggle.com/dansbecker/using-categorical-data-with-one-hot-encoding if it works.
         '''
+
+        # print("trqw x shape:", x.shape)
+        # print("trqw x:", x)
+        # print(x.loc[:, ['ISLAND']])
         # encode textual values using one-hot encoding
         x = self.ohe_categorical(x)
+        # print("trqw x shape:", x.shape)
         # handle missing values.
         x = x.fillna(x.mean()) #TODO: be able to explain why we fill the missing values with the mean.
+        # print("trqw x shape:", x.shape)
+
         # new preprocessing values needed if model is training
+        training_columns_to_normalize = ['longitude', 'latitude', 'housing_median_age', 'total_rooms', 'total_bedrooms', 
+                                        'population', 'households', 'median_income']
+
+        # print("X: ", x)
+        # print("y: ", y)
+        
+        """
+        NEED TO SORT: not liking .loc, causes matrix multiplication error. Why? 
+        """
+
+        # Normalise X
         if training:
-            self.min_max_scaler = preprocessing.MinMaxScaler()
-            x = self.min_max_scaler.fit_transform(x)
-        # convert data to tensors
+            self.x_scaler = self.x_scaler.fit(x.loc[:, training_columns_to_normalize])
+            x = self.x_scaler.transform(x.loc[:, training_columns_to_normalize])
+            # self.x_scaler = self.x_scaler.fit(x)
+            # x = self.x_scaler.transform(x)
+
+        else:
+            x = self.x_scaler.transform(x.loc[:, training_columns_to_normalize])
+            # x = self.x_scaler.transform(x)
+
+        # convert X to tensor TO DO: COME BACK TO
         x_tensor = torch.from_numpy(np.array(x)).float()
+        # print("x_tensor: ", x_tensor)
+
+        # Normalise y if gievn
         if y is not None:
-            y = y.fillna(y.mean())
+            testing_column_to_normalize = ['median_house_value']
+            if training:
+                self.y_scalar = self.y_scaler.fit(y.loc[:, testing_column_to_normalize])
+                y = self.y_scaler.transform(y.loc[:, testing_column_to_normalize])
+
+                # self.y_scalar = self.y_scaler.fit(y)
+                # y = self.y_scaler.transform(y)
+                
+            else:
+                y = self.y_scaler.transform(y.loc[:, testing_column_to_normalize])
+                # y = self.y_scaler.transform(y)
+
+
+            # print("X post normalisation: ", x)
+            # print("y post normalisation: ", y)
+            # print("length of X: ", len(x), " & length of y: ", len(y))
+
+
             y_tensor = torch.from_numpy(np.array(y)).float()
-        # Return preprocessed x and y, return None for y if it was None
-        return x_tensor, (y_tensor if isinstance(y, pd.DataFrame) else None)
+            # print("y_tensor: ", y_tensor)
+
+            return(x_tensor, y_tensor)
+
+        # Return preprocessed x and y
+        return x_tensor
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -178,16 +265,23 @@ class Regressor(nn.Module):
         #                       ** START OF YOUR CODE **
         #######################################################################
         
-        X, Y = self._preprocessor(x, y = y, training = True) # Do not forget
+        # print("In fit, before pre-processing, y: ", y)
+        (X, Y) = self._preprocessor(x, y = y, training = True) # Do not forget
+        # print("In fit, after pre-processing, X: ", X, " & Y: ", Y)
         # prepare data for forward pass
         # use Pytorch utilities for data preparation https://discuss.pytorch.org/t/what-do-tensordataset-and-dataloader-do/107017
         dataset = torch.utils.data.TensorDataset(X, Y)
         average_loss_per_epoch = []
-        
+
+        # set model to training mode: https://stackoverflow.com/questions/60018578/what-does-model-eval-do-in-pytorch
+        self.train()
         for epoch in range(self.nb_epoch):
             train_loader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
             total_loss_per_epoch = 0.0
             for i, (input, labels) in enumerate(train_loader, 0):
+                # set our input and label tensors to use our device
+                #input#.to(device)
+                #labels#.to(device)
                 # forward pass
                 if optimizer is not None:
                     optimizer.zero_grad()
@@ -204,7 +298,9 @@ class Regressor(nn.Module):
                 total_loss_per_epoch += loss.item()
             average_training_loss = total_loss_per_epoch / len(train_loader)
             average_loss_per_epoch.append(average_training_loss)
-            print("Epoch ", epoch, ", Average Training Loss ", average_training_loss)
+            if epoch % 10 == 0:
+                print("Epoch ", epoch, ", Average Training Loss ", average_training_loss)
+        # TODO why is it going through the epochs so slowly?
 
         return self
 
@@ -229,16 +325,20 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-
+        # BEING PASSED A TENSOR AS IT IS
         X, _ = self._preprocessor(x, training = False) # Do not forget
-        y_hat = []
+        # x = torch.tensor(x).float()
+        # turn on evaluation mode
+        # self.eval()
+        # predictions = []
+        with torch.no_grad(): # for less memory consumption
+            # for i, value in enumerate(x):
+            #     outputs = self(value)
+            #     predictions = np.append(predictions, outputs)
+            y_pred = self(x)            
 
-        with torch.no_grad():
-                for i, value in enumerate(X):
-                        out = self.linear1(value)
-                        y_hat = np.append(y_hat, out)
-
-        return y_hat
+        predictions = self.y_scaler.inverse_transform(y_pred)
+        return predictions
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -261,14 +361,28 @@ class Regressor(nn.Module):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+        # Underscore as want to ignore the parameter
+        # Want to pre-process ground truths (y) in the same way pre-process x, but use the scalers that are stored (why trainging false) & just transform x & y
+        # print("ahjsd score x.shape: ", x.shape, " & y.shape: ", y.shape)
+        x, _ = self._preprocessor(x, y = y, training = False) # Do not forget
+        # print("jhlk")
+        # get prediction
+        # y_pred = self.predict(x)
+        # print(y_pred)
 
-        X, Y = self._preprocessor(x, y = y, training = False) # Do not forget
+        with torch.no_grad(): # for less memory consumption
+            # for i, value in enumerate(x):
+            #     outputs = self(value)
+            #     predictions = np.append(predictions, outputs)
+            y_pred = self(x)            
 
-        y_hat = self.predict(x)
-
-        return -mse(Y, y_hat)
-
-        return 0 # Replace this code with your own
+        predictions = self.y_scaler.inverse_transform(y_pred)
+        
+        # calculate mse for predictions
+        mse = mean_squared_error(y, predictions)
+        # square root of mse
+        rmse = math.sqrt(mse)
+        return rmse # Replace this code with your own
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -291,7 +405,7 @@ def load_regressor():
     """
     # If you alter this, make sure it works in tandem with save_regressor
     with open('part2_model.pickle', 'rb') as target:
-        trained_model = pickle.load(target)
+        trained_model = pickle.load(target)#to(device)
     print("\nLoaded model in part2_model.pickle\n")
     return trained_model
 
@@ -350,23 +464,22 @@ def example_main():
     x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
     #TODO: think about whether we need x_val, y_val. Think we need it for hyperparameter tuning.
     #       we have training (70%), val (15%), and testing (15%) subsets for both x and y.
-    regressor = Regressor(x_train, y_train, nb_epoch = 100).to(device)
+
+    print(x_train)
+
+    # Prepocesses & learns appropriate transformation
+    regressor = Regressor(x_train, y_train, nb_epoch = 100)#.to(device)
     # Create instance of optimizer
     optimizer = optim.SGD(regressor.parameters(), lr=0.01, momentum=0.5) #TODO: not sure why we need a momentum
 
     regressor.fit(x_train, y_train, optimizer)
     save_regressor(regressor)
 
-    print(regressor.predict(x_test))
-
-    print(regressor.score(x_test, y_test))
-
      
-    """ Error
+    # Error
     error = regressor.score(x_test, y_test)
-    print("\nRegressor error: {}\n".format(error)) """
+    print("\nRegressor error: {}\n".format(error)) 
 
 
 if __name__ == "__main__":
     example_main()
-
