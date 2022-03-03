@@ -219,7 +219,7 @@ class Regressor(nn.Module):
 
         # Return preprocessed x and y
         print("pp return")
-        return x_tensor
+        return x_tensor, (y if isinstance(y, pd.DataFrame) else None)
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -508,11 +508,11 @@ def example_main():
 
     ################## CODE TO UNDERSTAND the dataset ###################
 
-    """ rd.first_and_last_five_rows(data)
+    rd.first_and_last_five_rows(data)
     rd.summary_statistics(data)
     rd.dataset_datatypes(data)
     rd.missing_values(data)
-    print(data.shape) """
+    print(data.shape) 
     ################## PRE-PROVIDED CODE ###################
 
     # Spliting input and output
@@ -554,8 +554,6 @@ def example_main():
     print("\nRegressor1 error: {}\n".format(error)) 
     print("\nRegressor2 error: {}\n".format(error2)) 
 
-
-    #RegressorHyperParameterSearch(X,Y)
 
 if __name__ == "__main__":
     example_main()
