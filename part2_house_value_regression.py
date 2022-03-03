@@ -9,8 +9,9 @@ import numpy as np
 import pandas as pd
 import read_data as rd
 from sklearn import preprocessing 
-from sklearn.model_selection import train_test_split # to ensure there's a held-out dataset...
+from sklearn.model_selection import train_test_split, GridSearchCV # to ensure there's a held-out dataset...
 import random
+from itertools import product
 
 # # FROM THE COLAB e.g. You should set a random seed to ensure that your results are reproducible.
 torch.manual_seed(0)
@@ -160,7 +161,6 @@ class Regressor(nn.Module):
       computes gradients, is automatically defined!
       e.g. implementation given in ICL's deep learning tutorial for one hidden layer classifier
     """
-
 
     def ohe_categorical(self, x):
         self.label_binarizer = preprocessing.OneHotEncoder(handle_unknown='ignore')
@@ -420,12 +420,12 @@ class Regressor(nn.Module):
         mse = mean_squared_error(y, predictions)
         # square root of mse
         rmse = math.sqrt(mse)
+        print(rmse)
         return rmse # Replace this code with your own
 
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
-
 
 def save_regressor(trained_model): 
     """ 
@@ -449,11 +449,13 @@ def load_regressor():
 
 
 
-def RegressorHyperParameterSearch(): 
+def RegressorHyperParameterSearch(x,y): 
     # Ensure to add whatever inputs you deem necessary to this function
     """
     Performs a hyper-parameter for fine-tuning the regressor implemented 
     in the Regressor class.
+
+    looks for the best learning rate, batch size, and number of neurons
 
     Arguments:
         Add whatever inputs you need.
@@ -462,6 +464,40 @@ def RegressorHyperParameterSearch():
         The function should return your optimised hyper-parameters. 
 
     """
+    
+    # setting params to test
+    learning_rates = [0.1,0.001,0.0001,0.00001]
+    batch_size = [16,32,64]
+
+    hyperparameters = list(product(learning_rates, batch_size))
+
+    min_error = 80000
+    best_lr = 0
+
+    x_train, x_val_and_test, y_train, y_val_and_test = train_test_split(x, y, test_size=0.3)
+    x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
+
+    for lr in learning_rates:
+        regressor = Regressor(x_train, y_train, nb_epoch = 100)#.to(device)
+        # Create instance of optimizer
+        optimizer = optim.SGD(regressor.parameters(), lr=lr, momentum=0.5) #TODO: not sure why we need a momentum
+
+        regressor.fit(x_train, y_train, optimizer)
+        save_regressor(regressor)
+
+        
+        # Error
+        error = regressor.score(x_test, y_test)
+
+        if error < min_error:
+            min_error = error
+            best_lr = lr
+
+        print(best_lr)
+
+
+
+
 
     #######################################################################
     #                       ** START OF YOUR CODE **
@@ -496,28 +532,30 @@ def example_main():
     # Spliting input and output
     X = data.loc[:, data.columns != output_label]
     Y = data.loc[:, [output_label]]
-    # TRAINING
-    # splitting out a held-out data set for validation and testing.
-    x_train, x_val_and_test, y_train, y_val_and_test = train_test_split(X, Y, test_size=0.3)
-    x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
-    #TODO: think about whether we need x_val, y_val. Think we need it for hyperparameter tuning.
-    #       we have training (70%), val (15%), and testing (15%) subsets for both x and y.
+    # # TRAINING
+    # # splitting out a held-out data set for validation and testing.
+    # x_train, x_val_and_test, y_train, y_val_and_test = train_test_split(X, Y, test_size=0.3)
+    # x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
+    # #TODO: think about whether we need x_val, y_val. Think we need it for hyperparameter tuning.
+    # #       we have training (70%), val (15%), and testing (15%) subsets for both x and y.
 
-    print(x_train)
+    # print(x_train)
 
-    # Prepocesses & learns appropriate transformation
-    regressor = Regressor(x_train, y_train, nb_epoch = 100)#.to(device)
-    # Create instance of optimizer
-    optimizer = optim.SGD(regressor.parameters(), lr=0.01, momentum=0.5) #TODO: not sure why we need a momentum
+    # # Prepocesses & learns appropriate transformation
+    # regressor = Regressor(x_train, y_train, nb_epoch = 100)#.to(device)
+    # # Create instance of optimizer
+    # optimizer = optim.SGD(regressor.parameters(), lr=0.01, momentum=0.5) #TODO: not sure why we need a momentum
 
-    regressor.fit(x_train, y_train, optimizer)
-    save_regressor(regressor)
+    # regressor.fit(x_train, y_train, optimizer)
+    # save_regressor(regressor)
 
-     
-    # Error
-    error = regressor.score(x_test, y_test)
-    print("\nRegressor error: {}\n".format(error)) 
+        
+    # # Error
+    # error = regressor.score(x_test, y_test)
+    # print("\nRegressor error: {}\n".format(error)) 
 
+
+    RegressorHyperParameterSearch(X,Y)
 
 if __name__ == "__main__":
     example_main()
