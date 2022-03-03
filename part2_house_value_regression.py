@@ -270,12 +270,7 @@ class Regressor(nn.Module):
             if epoch % 10 == 0:
                 print("Epoch ", epoch, ", Average Training Loss ", average_training_loss)
 
-        # code for plotting
-        # plt.title("Training Loss")
-        # plt.plot(range(len(average_loss_per_epoch)),average_loss_per_epoch)
-        # plt.xlabel("Epoch number")
-        # plt.ylabel("Average loss at each epoch")
-        # plt.show()
+        # plot_data("Training Loss", range(len(average_loss_per_epoch)), average_loss_per_epoch, "Epoch number", "Average loss at each epoch")
         return self
 
         #######################################################################
@@ -398,7 +393,7 @@ def RegressorHyperParameterSearch(x,y):
     x_train, x_val_and_test, y_train, y_val_and_test = train_test_split(x, y, test_size=0.3)
     x_val, x_test, y_val, y_test = train_test_split(x_val_and_test, y_val_and_test, test_size=0.5)
 
-
+    lr_plot = []
     #Find best learning rate
     for lr in learning_rates:
         print("Testing learning rates:")
@@ -410,19 +405,20 @@ def RegressorHyperParameterSearch(x,y):
         regressor.fit(x_train, y_train, optimizer)
         save_regressor(regressor)
 
-        
         # Error
         error = regressor.score(x_test, y_test)
+        lr_plot.append(error)
 
         if error < min_error:
             min_error = error
             best_lr = lr
     print("Best learning rate: ", best_lr)
     print("Lowest error for lr: ", min_error)
+    # plot_data("Learning Rate Hyperparameterization", learning_rates, lr_plot, "Learning rate", "Best MSE of model", xscale='log')
 
     min_error = 80000
 
-
+    bs_plot = []
     #Use best learning rate and find best batch size
     for bs in batch_size:
         print("Testing batch size:")
@@ -433,10 +429,10 @@ def RegressorHyperParameterSearch(x,y):
 
         regressor.fit(x_train, y_train, optimizer)
         save_regressor(regressor)
-
         
         # Error
         error = regressor.score(x_test, y_test)
+        bs_plot.append(error)
 
         if error < min_error:
             min_error = error
@@ -444,11 +440,14 @@ def RegressorHyperParameterSearch(x,y):
 
     print("Best batch size: ", best_bs)
     print("with lowest error of: ", min_error)
-
+    # plot_data("Batch Size Hyperparameterization", batch_size, bs_plot, "Batch Size", "Best MSE of model")
 
     min_error = 80000
 
-
+    neuron_plot = []
+    neurons_list = []
+    for item in neurons:
+        neurons_list.append(str(item))
     #Use best learning rate and batch size and find best neuron config
     for i,j in zip(neurons, activations):
         print("Testing neurons size:")
@@ -463,14 +462,14 @@ def RegressorHyperParameterSearch(x,y):
         
         # Error
         error = regressor.score(x_test, y_test)
+        neuron_plot.append(error)
 
         if error < min_error:
             min_error = error
             best_n = i
-
     print("Best neurons: ", best_n)
     print("with lowest error of: ", min_error)
-
+    # plot_data("Model Architecrture Hyperparameterization", range(len(neuron_plot)), neuron_plot, "Neuron architecture", "Best MSE of model", xticks=neurons_list)
 
 
     #######################################################################
@@ -483,7 +482,18 @@ def RegressorHyperParameterSearch(x,y):
     #                       ** END OF YOUR CODE **
     #######################################################################
 
-
+def plot_data(title, x, y, xlabel, ylabel, xscale='linear', xticks=None):
+    '''
+    Plots the data using matplotlib
+    '''
+    plt.title(title)
+    plt.plot(x,y)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.xscale(xscale)
+    if xticks is not None:
+        plt.xticks(x, xticks)
+    plt.show()
 
 def example_main():
 
